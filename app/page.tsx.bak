@@ -1,0 +1,315 @@
+import Link from 'next/link'
+
+/* ── SVG icon set ── */
+function Sparkle({ size = 18, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z"/>
+    </svg>
+  )
+}
+
+const FEATURES = [
+  {
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>
+      </svg>
+    ),
+    title: 'Budget Tracker',
+    desc: 'Track income and expenses by category. See exactly where every dollar goes.',
+    tag: 'Popular',
+  },
+  {
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>
+      </svg>
+    ),
+    title: 'Portfolio & Markets',
+    desc: 'Live prices, performance charts, and smart rebalancing alerts.',
+    tag: null,
+  },
+  {
+    icon: <Sparkle size={22} />,
+    title: 'AI Financial Plan',
+    desc: 'Claude AI reads your full picture and builds a personalized ETF roadmap.',
+    tag: 'New',
+  },
+  {
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+      </svg>
+    ),
+    title: 'Debt Payoff',
+    desc: 'Avalanche or snowball strategy with a clear payoff timeline.',
+    tag: null,
+  },
+  {
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+        <line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/>
+      </svg>
+    ),
+    title: 'Tax Assistant',
+    desc: 'Estimate federal taxes, find TLH opportunities, track deadlines.',
+    tag: null,
+  },
+  {
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+      </svg>
+    ),
+    title: 'Goal Tracking',
+    desc: 'Set goals and every module works together to help you hit them.',
+    tag: null,
+  },
+]
+
+const STATS = [
+  { value: '$2.4M+', label: 'Net Worth Tracked' },
+  { value: '12,000+', label: 'Plans Generated' },
+  { value: '18%', label: 'Avg. Savings Rate' },
+]
+
+export default function LandingPage() {
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--nx-cream-50)', fontFamily: 'var(--font-sans)' }}>
+
+      {/* ────────────── NAV ────────────── */}
+      <nav style={{
+        position: 'sticky', top: 0, zIndex: 50,
+        background: 'var(--nx-navy-800)',
+        borderBottom: '1px solid var(--nx-navy-700)',
+        height: 58,
+        padding: '0 40px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 28, height: 28, background: 'var(--nx-cream-50)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, color: 'var(--nx-navy-800)', lineHeight: 1 }}>N</span>
+          </div>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, letterSpacing: '-0.04em', color: 'var(--nx-cream-50)' }}>Nexus</span>
+        </div>
+        <div style={{ display: 'flex', gap: 32 }}>
+          {['Features', 'Pricing', 'About'].map(l => (
+            <span key={l} style={{ fontSize: 13.5, color: 'var(--nx-navy-300)', fontWeight: 500, cursor: 'default' }}>{l}</span>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <Link href="/login" style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--nx-navy-300)', textDecoration: 'none', padding: '6px 14px' }}>
+            Sign in
+          </Link>
+          <Link href="/signup" style={{
+            fontSize: 13.5, fontWeight: 600, padding: '7px 18px', borderRadius: 6,
+            background: 'var(--nx-gold-500)', color: 'var(--nx-navy-900)',
+            textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6,
+          }}>
+            Get started free
+          </Link>
+        </div>
+      </nav>
+
+      {/* ────────────── HERO ────────────── */}
+      <section style={{ background: 'var(--nx-navy-800)', padding: '0 40px' }}>
+        {/* Top content */}
+        <div style={{ maxWidth: 1000, margin: '0 auto', paddingTop: 100, paddingBottom: 80, display: 'grid', gridTemplateColumns: '1fr 380px', gap: 80, alignItems: 'center' }}>
+          <div>
+            {/* Eyebrow */}
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 14px', borderRadius: 999, marginBottom: 28, background: 'rgba(201,164,55,0.12)', border: '1px solid rgba(201,164,55,0.25)' }}>
+              <Sparkle size={12} color="var(--nx-gold-400)" />
+              <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--nx-gold-300)' }}>
+                AI-Powered Financial Planning
+              </span>
+            </div>
+
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 64, fontWeight: 400, letterSpacing: '-0.03em', lineHeight: 1.05, color: 'var(--nx-cream-50)', marginBottom: 22 }}>
+              Your finances,<br />
+              <span style={{ color: 'var(--nx-gold-400)', fontStyle: 'italic' }}>finally clear.</span>
+            </h1>
+
+            <p style={{ fontSize: 17, lineHeight: 1.7, color: 'var(--nx-navy-300)', maxWidth: 440, marginBottom: 36 }}>
+              One platform to budget, invest, pay off debt, and build a personalized plan — powered by Claude AI.
+            </p>
+
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <Link href="/signup" style={{
+                fontSize: 15, fontWeight: 600, padding: '12px 28px', borderRadius: 7,
+                background: 'var(--nx-gold-500)', color: 'var(--nx-navy-900)',
+                textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8,
+              }}>
+                Start for free →
+              </Link>
+              <Link href="#features" style={{
+                fontSize: 15, fontWeight: 500, padding: '12px 28px', borderRadius: 7,
+                background: 'transparent', color: 'var(--nx-cream-200)',
+                border: '1px solid var(--nx-navy-500)', textDecoration: 'none',
+              }}>
+                See features
+              </Link>
+            </div>
+
+            <p style={{ fontSize: 12.5, color: 'var(--nx-navy-500)', marginTop: 18 }}>
+              No credit card required · Free forever on basic plan
+            </p>
+          </div>
+
+          {/* Right: mock dashboard card */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* Net worth card */}
+            <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--nx-navy-700)', borderRadius: 14, padding: '20px 22px' }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--nx-navy-400)', marginBottom: 6 }}>Net Worth</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 38, fontWeight: 400, letterSpacing: '-0.02em', color: 'var(--nx-cream-50)', lineHeight: 1 }}>$184,200</div>
+              <div style={{ fontSize: 12.5, color: 'var(--nx-pos-500)', marginTop: 6, fontWeight: 600 }}>+$2,840 this month</div>
+              {/* Mini sparkline */}
+              <svg viewBox="0 0 280 48" style={{ width: '100%', marginTop: 14 }} preserveAspectRatio="none">
+                <polyline points="0,38 40,32 80,34 120,24 160,20 200,14 240,10 280,4" fill="none" stroke="var(--nx-gold-400)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <polyline points="0,38 40,32 80,34 120,24 160,20 200,14 240,10 280,4 280,48 0,48" fill="rgba(201,164,55,0.08)" stroke="none"/>
+                <circle cx="280" cy="4" r="3.5" fill="var(--nx-gold-400)"/>
+              </svg>
+            </div>
+
+            {/* 2 mini stat cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--nx-navy-700)', borderRadius: 12, padding: '16px 18px' }}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--nx-navy-400)', marginBottom: 6 }}>Portfolio</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 400, color: 'var(--nx-cream-50)', lineHeight: 1 }}>$62,800</div>
+                <div style={{ fontSize: 11, color: 'var(--nx-pos-500)', marginTop: 5, fontWeight: 600 }}>+12.4%</div>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--nx-navy-700)', borderRadius: 12, padding: '16px 18px' }}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--nx-navy-400)', marginBottom: 6 }}>Savings Rate</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 400, color: 'var(--nx-cream-50)', lineHeight: 1 }}>24%</div>
+                <div style={{ fontSize: 11, color: 'var(--nx-navy-400)', marginTop: 5 }}>of income</div>
+              </div>
+            </div>
+
+            {/* AI insight card */}
+            <div style={{ background: 'rgba(201,164,55,0.08)', border: '1px solid rgba(201,164,55,0.2)', borderRadius: 12, padding: '16px 18px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <div style={{ marginTop: 1, flexShrink: 0 }}>
+                <Sparkle size={14} color="var(--nx-gold-400)" />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--nx-gold-300)', marginBottom: 5 }}>Nexus AI</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, lineHeight: 1.5, color: 'var(--nx-cream-50)', fontStyle: 'italic' }}>
+                  Increasing your savings rate to 28% would add <span style={{ color: 'var(--nx-gold-300)' }}>$180K</span> by retirement.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats bar */}
+        <div style={{ maxWidth: 1000, margin: '0 auto', borderTop: '1px solid var(--nx-navy-700)', padding: '28px 0', display: 'flex', gap: 0 }}>
+          {STATS.map((s, i) => (
+            <div key={s.label} style={{ flex: 1, textAlign: 'center', borderLeft: i > 0 ? '1px solid var(--nx-navy-700)' : 'none' }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 400, color: 'var(--nx-gold-300)', letterSpacing: '-0.02em', lineHeight: 1 }}>{s.value}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--nx-navy-400)', marginTop: 6, fontWeight: 500 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ────────────── FEATURES ────────────── */}
+      <section id="features" style={{ padding: '80px 40px', maxWidth: 1080, margin: '0 auto', width: '100%' }}>
+        <div style={{ textAlign: 'center', marginBottom: 52 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 14 }}>Everything you need</div>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 40, fontWeight: 400, letterSpacing: '-0.025em', color: 'var(--nx-navy-900)', lineHeight: 1.15 }}>
+            One platform.<br />Your complete financial life.
+          </h2>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+          {FEATURES.map(f => (
+            <div key={f.title} style={{
+              background: 'var(--nx-white)', borderRadius: 14, padding: '24px 26px',
+              border: '1px solid var(--border)', boxShadow: 'var(--card-shadow)',
+              transition: 'box-shadow 200ms, border-color 200ms',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 11, background: 'var(--nx-navy-800)', color: 'var(--nx-gold-400)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {f.icon}
+                </div>
+                {f.tag && (
+                  <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 999, background: 'var(--nx-gold-100)', color: '#6B5318' }}>
+                    {f.tag}
+                  </span>
+                )}
+              </div>
+              <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--nx-navy-900)', marginBottom: 7, letterSpacing: '-0.01em' }}>{f.title}</h3>
+              <p style={{ fontSize: 13.5, lineHeight: 1.65, color: 'var(--muted)' }}>{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ────────────── TESTIMONIAL / CTA ────────────── */}
+      <section style={{ padding: '0 40px 80px', maxWidth: 1080, margin: '0 auto', width: '100%' }}>
+        <div style={{ background: 'var(--nx-navy-800)', borderRadius: 18, overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+          {/* Left: CTA */}
+          <div style={{ padding: '56px 52px', borderRight: '1px solid var(--nx-navy-700)' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '5px 13px', borderRadius: 999, marginBottom: 22, background: 'rgba(201,164,55,0.12)', border: '1px solid rgba(201,164,55,0.22)' }}>
+              <Sparkle size={10} color="var(--nx-gold-400)" />
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--nx-gold-300)' }}>Get started today</span>
+            </div>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 38, fontWeight: 400, letterSpacing: '-0.025em', lineHeight: 1.15, color: 'var(--nx-cream-50)', marginBottom: 16 }}>
+              Ready to take<br />
+              <span style={{ color: 'var(--nx-gold-400)', fontStyle: 'italic' }}>control?</span>
+            </h2>
+            <p style={{ fontSize: 14.5, color: 'var(--nx-navy-300)', lineHeight: 1.65, marginBottom: 32 }}>
+              Build a personalized plan, track your investments, and finally understand where your money goes.
+            </p>
+            <Link href="/signup" style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              fontSize: 14.5, fontWeight: 600, padding: '12px 26px', borderRadius: 7,
+              background: 'var(--nx-gold-500)', color: 'var(--nx-navy-900)',
+              textDecoration: 'none',
+            }}>
+              Create your free account →
+            </Link>
+          </div>
+
+          {/* Right: testimonial */}
+          <div style={{ padding: '56px 52px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', gap: 3, marginBottom: 18 }}>
+              {[1,2,3,4,5].map(i => (
+                <svg key={i} width="16" height="16" viewBox="0 0 24 24" fill="var(--nx-gold-400)" stroke="none">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+              ))}
+            </div>
+            <blockquote style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 400, lineHeight: 1.5, color: 'var(--nx-cream-50)', marginBottom: 24, fontStyle: 'italic', letterSpacing: '-0.01em' }}>
+              &ldquo;I finally understand where my money is going — and where it should be going. The AI plan changed how I think about saving.&rdquo;
+            </blockquote>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'var(--nx-gold-500)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: 'var(--nx-navy-900)' }}>S</div>
+              <div>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--nx-cream-50)' }}>Sarah M.</div>
+                <div style={{ fontSize: 12, color: 'var(--nx-navy-400)', marginTop: 2 }}>Teacher · Phoenix, AZ</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ────────────── FOOTER ────────────── */}
+      <footer style={{ borderTop: '1px solid var(--border)', padding: '22px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 22, height: 22, background: 'var(--nx-navy-800)', borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 12, color: 'var(--nx-cream-50)', lineHeight: 1 }}>N</span>
+          </div>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 500, letterSpacing: '-0.03em', color: 'var(--nx-navy-800)' }}>Nexus</span>
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--muted)', textAlign: 'center' }}>
+          For educational purposes only. Not financial advice. Always consult a licensed advisor.
+        </p>
+        <div style={{ display: 'flex', gap: 24 }}>
+          {['Privacy', 'Terms', 'Contact'].map(l => (
+            <span key={l} style={{ fontSize: 12, color: 'var(--muted)', cursor: 'default' }}>{l}</span>
+          ))}
+        </div>
+      </footer>
+    </div>
+  )
+}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { aiLimiter, getIP } from '@/lib/ratelimit'
 import { parseBody, sanitizePlanInput } from '@/lib/validate'
+import { createClient } from '@/lib/supabase/server'
 
 const SYSTEM_PROMPT = `You are Nexus's AI financial guide for teenagers and young adults (ages 13-25). You explain money in plain, relatable language — no jargon, no condescension. You meet users where they are: first jobs, allowance, side hustles, saving for a car or college, and learning to invest for the first time.
 
@@ -60,9 +61,14 @@ Format your response as valid JSON matching this structure exactly:
 Respond ONLY with the JSON object. No markdown, no extra text.`
 
 export async function POST(req: NextRequest) {
-  // Rate limit: 10 AI plan generations per hour per IP
+  // Require authenticated user
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  // Rate limit per user ID (not just IP)
   const ip = getIP(req)
-  const { success, remaining } = await aiLimiter.limit(ip)
+  const { success, remaining } = await aiLimiter.limit(user.id ?? ip)
   if (!success) {
     return NextResponse.json(
       { error: 'Too many requests. Please wait before generating another plan.' },

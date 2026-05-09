@@ -2,13 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { aiLimiter, getIP } from '@/lib/ratelimit'
 import { parseBody, sanitizeStockResearchInput } from '@/lib/validate'
+import { createClient } from '@/lib/supabase/server'
 
 const client = new Anthropic()
 
 export async function POST(req: NextRequest) {
-  // Rate limit: 10 AI analyses per hour per IP
+  // Require authenticated user
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  // Rate limit per user ID
   const ip = getIP(req)
-  const { success, remaining } = await aiLimiter.limit(ip)
+  const { success, remaining } = await aiLimiter.limit(user.id ?? ip)
   if (!success) {
     return NextResponse.json(
       { error: 'Too many requests. Please wait before analyzing another stock.' },

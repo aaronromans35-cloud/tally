@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { aiLimiter, getIP } from '@/lib/ratelimit'
 
 const client = new Anthropic()
 
 export async function POST(req: NextRequest) {
+  // Rate limit: 10 AI analyses per hour per IP
+  const ip = getIP(req)
+  const { success, remaining } = await aiLimiter.limit(ip)
+  if (!success) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please wait before analyzing another stock.' },
+      { status: 429, headers: { 'X-RateLimit-Remaining': String(remaining) } }
+    )
+  }
+
   const { ticker, name, price, change, changePct, high52, low52, marketCap, volume, history } = await req.json()
 
   const historyStr = history?.slice(-30).map((h: { date: string; price: number }) =>

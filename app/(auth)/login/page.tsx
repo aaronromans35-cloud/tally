@@ -15,6 +15,29 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
+
+    // Call rate-limited auth endpoint
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    })
+
+    if (res.status === 429) {
+      const data = await res.json()
+      setError(data.error)
+      setLoading(false)
+      return
+    }
+
+    if (!res.ok) {
+      const data = await res.json()
+      setError(data.error ?? 'Login failed')
+      setLoading(false)
+      return
+    }
+
+    // Re-authenticate client-side so the session cookie is set
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { quoteLimiter, getIP } from '@/lib/ratelimit'
 
 const RANGE_MAP: Record<string, { interval: string; range: string }> = {
   '1W': { interval: '1d',  range: '5d' },
@@ -49,6 +50,13 @@ async function fetchYahoo(ticker: string, interval: string, range: string) {
 }
 
 export async function GET(req: NextRequest) {
+  // Rate limit: 60 quote requests per minute per IP
+  const ip = getIP(req)
+  const { success } = await quoteLimiter.limit(ip)
+  if (!success) {
+    return NextResponse.json({ error: 'Too many requests. Please slow down.' }, { status: 429 })
+  }
+
   const ticker = req.nextUrl.searchParams.get('ticker')
   const rangeKey = req.nextUrl.searchParams.get('range') ?? '1M'
   if (!ticker) return NextResponse.json({ error: 'No ticker' }, { status: 400 })

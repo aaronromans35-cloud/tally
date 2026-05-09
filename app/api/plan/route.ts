@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import fs from 'fs'
 import path from 'path'
+import { aiLimiter, getIP } from '@/lib/ratelimit'
 
 function getAnthropicKey(): string {
   // Try process.env first
@@ -73,6 +74,16 @@ Format your response as valid JSON matching this structure exactly:
 Respond ONLY with the JSON object. No markdown, no extra text.`
 
 export async function POST(req: NextRequest) {
+  // Rate limit: 10 AI plan generations per hour per IP
+  const ip = getIP(req)
+  const { success, remaining } = await aiLimiter.limit(ip)
+  if (!success) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please wait before generating another plan.' },
+      { status: 429, headers: { 'X-RateLimit-Remaining': String(remaining) } }
+    )
+  }
+
   try {
     const apiKey = getAnthropicKey()
     if (!apiKey) return NextResponse.json({ error: 'ANTHROPIC_API_KEY not set in .env.local' }, { status: 500 })

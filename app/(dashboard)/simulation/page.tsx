@@ -30,7 +30,8 @@ export default function SimulationPage() {
 
   // Trade state
   const [searchTicker, setSearchTicker] = useState('')
-  const [quote, setQuote] = useState<{ ticker: string; name: string; price: number; change: number; changePct: number } | null>(null)
+  const [quote, setQuote] = useState<{ ticker: string; name: string; price: number; change: number; changePct: number; high52: number; low52: number; volume: number | null; history: { date: string; price: number }[] } | null>(null)
+  const [quoteRange, setQuoteRange] = useState('1M')
   const [quoteLoading, setQuoteLoading] = useState(false)
   const [tradeAction, setTradeAction] = useState<'buy' | 'sell'>('buy')
   const [tradeShares, setTradeShares] = useState('')
@@ -196,14 +197,16 @@ export default function SimulationPage() {
     await loadGame(game, userId)
   }
 
-  async function searchQuote() {
-    if (!searchTicker.trim()) return
+  async function searchQuote(ticker?: string, range?: string) {
+    const t = (ticker ?? searchTicker).trim().toUpperCase()
+    const r = range ?? quoteRange
+    if (!t) return
     setQuoteLoading(true)
-    setQuote(null)
+    if (!ticker) setQuote(null)
     setTradeMsg('')
     try {
-      const res = await fetch(`/api/quote?ticker=${encodeURIComponent(searchTicker.trim().toUpperCase())}&range=1M`, { cache: 'no-store' })
-      if (res.ok) { const q = await res.json(); if (q.price > 0) setQuote(q); else setTradeMsg('Ticker not found.') }
+      const res = await fetch(`/api/quote?ticker=${encodeURIComponent(t)}&range=${r}`, { cache: 'no-store' })
+      if (res.ok) { const q = await res.json(); if (q.price > 0) { setQuote(q); setQuoteRange(r) } else setTradeMsg('Ticker not found.') }
       else setTradeMsg('Ticker not found.')
     } catch { setTradeMsg('Failed to fetch quote.') }
     setQuoteLoading(false)
@@ -450,69 +453,148 @@ export default function SimulationPage() {
 
           {/* Trade tab */}
           {tab === 'trade' && (
-            <div className="flex flex-col gap-4 max-w-xl">
+            <div className="flex flex-col gap-4">
+              {/* Search bar */}
               <div className="card">
-                <h3 className="font-semibold mb-4">Search a Stock</h3>
                 <div className="flex gap-2">
                   <input className="input flex-1" value={searchTicker} onChange={e => setSearchTicker(e.target.value.toUpperCase())}
-                    onKeyDown={e => e.key === 'Enter' && searchQuote()} placeholder="e.g. AAPL, TSLA, MSFT" />
-                  <button className="btn-primary" onClick={searchQuote} disabled={quoteLoading}>
+                    onKeyDown={e => e.key === 'Enter' && searchQuote()} placeholder="Search ticker — AAPL, TSLA, NVDA, SPY…" />
+                  <button className="btn-primary" onClick={() => searchQuote()} disabled={quoteLoading}>
                     {quoteLoading ? '…' : 'Search'}
                   </button>
                 </div>
-
-                {quote && (
-                  <div className="mt-4 p-4 rounded-xl flex flex-col gap-4" style={{ background: 'var(--background)' }}>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="font-bold text-lg">{quote.ticker}</div>
-                        <div className="text-sm" style={{ color: 'var(--muted)' }}>{quote.name}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold">{fmt(quote.price)}</div>
-                        <div className="text-sm" style={{ color: quote.change >= 0 ? 'var(--green)' : 'var(--red)' }}>
-                          {quote.change >= 0 ? '+' : ''}{fmt(quote.change)} ({fmtPct(quote.changePct)})
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      {(['buy', 'sell'] as const).map(a => (
-                        <button key={a} onClick={() => setTradeAction(a)}
-                          className="flex-1 py-2 rounded-lg text-sm font-semibold capitalize"
-                          style={{ background: tradeAction === a ? (a === 'buy' ? 'var(--green)' : 'var(--red)') : 'var(--card-border)', color: tradeAction === a ? 'white' : 'var(--muted)', border: 'none', cursor: 'pointer' }}>
-                          {a === 'buy' ? '📈 Buy' : '📉 Sell'}
-                        </button>
-                      ))}
-                    </div>
-
-                    <div>
-                      <label className="label">Number of Shares</label>
-                      <input className="input" type="number" min="0.001" step="0.001" value={tradeShares} onChange={e => setTradeShares(e.target.value)} placeholder="e.g. 5" />
-                      {tradeShares && parseFloat(tradeShares) > 0 && (
-                        <div className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
-                          Total: {fmt(parseFloat(tradeShares) * quote.price)} · Cash after: {fmt((participant?.cash ?? 0) + (tradeAction === 'sell' ? 1 : -1) * parseFloat(tradeShares) * quote.price)}
-                        </div>
-                      )}
-                    </div>
-
-                    <button className="btn-primary justify-center" onClick={executeTrade} disabled={trading || !tradeShares}>
-                      {trading ? 'Executing…' : `${tradeAction === 'buy' ? 'Buy' : 'Sell'} ${quote.ticker}`}
-                    </button>
-
-                    {tradeMsg && (
-                      <div className="text-sm px-3 py-2 rounded-lg" style={{ background: tradeMsg.startsWith('✅') ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', color: tradeMsg.startsWith('✅') ? 'var(--green)' : 'var(--red)' }}>
-                        {tradeMsg}
-                      </div>
-                    )}
-                  </div>
+                {tradeMsg && !quote && (
+                  <div className="text-sm mt-3 px-3 py-2 rounded-lg" style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--red)' }}>{tradeMsg}</div>
                 )}
               </div>
-              <div className="card">
-                <div className="text-sm font-medium mb-1">Available Cash</div>
-                <div className="text-3xl font-bold" style={{ color: 'var(--green)' }}>{fmt(participant?.cash ?? 0)}</div>
-                <div className="text-xs mt-1" style={{ color: 'var(--muted)' }}>of {fmtShort(activeGame.start_cash)} starting balance</div>
-              </div>
+
+              {quote && (() => {
+                const isPos = quote.change >= 0
+                const prices = quote.history?.map(h => h.price) ?? []
+                const minP = prices.length > 0 ? Math.min(...prices) : 0
+                const maxP = prices.length > 0 ? Math.max(...prices) : 1
+                const pts = prices.map((p, i) => {
+                  const x = (i / Math.max(prices.length - 1, 1)) * 600
+                  const y = 100 - ((p - minP) / (maxP - minP || 1)) * 85
+                  return `${x},${y}`
+                }).join(' ')
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Chart card */}
+                    <div className="card flex flex-col gap-3">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="text-xl font-bold">{quote.ticker}</div>
+                          <div className="text-sm" style={{ color: 'var(--muted)' }}>{quote.name}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold">{fmt(quote.price)}</div>
+                          <div className="text-sm font-semibold" style={{ color: isPos ? 'var(--green)' : 'var(--red)' }}>
+                            {isPos ? '+' : ''}{fmt(quote.change)} ({fmtPct(quote.changePct)})
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Range selector */}
+                      <div className="flex gap-1">
+                        {['1W','1M','3M','6M','1Y'].map(r => (
+                          <button key={r} onClick={() => searchQuote(quote.ticker, r)}
+                            className="px-3 py-1 rounded-lg text-xs font-semibold"
+                            style={{ background: quoteRange === r ? 'var(--accent)' : 'var(--card-border)', color: quoteRange === r ? 'white' : 'var(--muted)', border: 'none', cursor: 'pointer' }}>
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Chart */}
+                      {prices.length > 1 && (
+                        <div style={{ background: 'var(--background)', borderRadius: 10, padding: '10px 6px 6px', overflow: 'hidden' }}>
+                          <svg viewBox="0 0 600 110" style={{ width: '100%', height: 110 }} preserveAspectRatio="none">
+                            <defs>
+                              <linearGradient id="simChartGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor={isPos ? '#22c55e' : '#ef4444'} stopOpacity="0.3"/>
+                                <stop offset="100%" stopColor={isPos ? '#22c55e' : '#ef4444'} stopOpacity="0"/>
+                              </linearGradient>
+                            </defs>
+                            <polygon points={`0,100 ${pts} 600,100`} fill="url(#simChartGrad)"/>
+                            <polyline points={pts} fill="none" stroke={isPos ? '#22c55e' : '#ef4444'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </div>
+                      )}
+
+                      {/* Key stats */}
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { label: '52W High', value: fmt(quote.high52) },
+                          { label: '52W Low', value: fmt(quote.low52) },
+                          { label: 'Volume', value: quote.volume ? (quote.volume > 1e6 ? `${(quote.volume/1e6).toFixed(1)}M` : quote.volume.toLocaleString()) : 'N/A' },
+                        ].map(s => (
+                          <div key={s.label} className="text-center p-2 rounded-lg" style={{ background: 'var(--background)' }}>
+                            <div className="text-xs font-semibold">{s.value}</div>
+                            <div className="text-xs mt-0.5" style={{ color: 'var(--muted)', fontSize: 10 }}>{s.label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Trade card */}
+                    <div className="flex flex-col gap-3">
+                      <div className="card flex flex-col gap-3">
+                        <div className="flex gap-2">
+                          {(['buy', 'sell'] as const).map(a => (
+                            <button key={a} onClick={() => setTradeAction(a)}
+                              className="flex-1 py-2.5 rounded-lg text-sm font-semibold"
+                              style={{ background: tradeAction === a ? (a === 'buy' ? 'var(--green)' : 'var(--red)') : 'var(--card-border)', color: tradeAction === a ? 'white' : 'var(--muted)', border: 'none', cursor: 'pointer' }}>
+                              {a === 'buy' ? '📈 Buy' : '📉 Sell'}
+                            </button>
+                          ))}
+                        </div>
+
+                        <div>
+                          <label className="label">Number of Shares</label>
+                          <input className="input" type="number" min="0.001" step="0.001" value={tradeShares}
+                            onChange={e => setTradeShares(e.target.value)} placeholder="e.g. 5" />
+                        </div>
+
+                        {tradeShares && parseFloat(tradeShares) > 0 && (
+                          <div className="p-3 rounded-xl text-sm" style={{ background: 'var(--background)' }}>
+                            <div className="flex justify-between mb-1">
+                              <span style={{ color: 'var(--muted)' }}>Shares</span>
+                              <span className="font-medium">{tradeShares} × {fmt(quote.price)}</span>
+                            </div>
+                            <div className="flex justify-between mb-1">
+                              <span style={{ color: 'var(--muted)' }}>Total</span>
+                              <span className="font-semibold">{fmt(parseFloat(tradeShares) * quote.price)}</span>
+                            </div>
+                            <div className="flex justify-between" style={{ borderTop: '1px solid var(--border)', paddingTop: 6, marginTop: 4 }}>
+                              <span style={{ color: 'var(--muted)' }}>Cash after</span>
+                              <span className="font-semibold" style={{ color: 'var(--green)' }}>
+                                {fmt((participant?.cash ?? 0) + (tradeAction === 'sell' ? 1 : -1) * parseFloat(tradeShares) * quote.price)}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        <button className="btn-primary justify-center" onClick={executeTrade} disabled={trading || !tradeShares}>
+                          {trading ? 'Executing…' : `${tradeAction === 'buy' ? '📈 Buy' : '📉 Sell'} ${quote.ticker}`}
+                        </button>
+
+                        {tradeMsg && (
+                          <div className="text-sm px-3 py-2 rounded-lg" style={{ background: tradeMsg.startsWith('✅') ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', color: tradeMsg.startsWith('✅') ? 'var(--green)' : 'var(--red)' }}>
+                            {tradeMsg}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="card">
+                        <div className="text-xs mb-1" style={{ color: 'var(--muted)' }}>Available Cash</div>
+                        <div className="text-2xl font-bold" style={{ color: 'var(--green)' }}>{fmt(participant?.cash ?? 0)}</div>
+                        <div className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>of {fmtShort(activeGame.start_cash)} starting</div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
           )}
 

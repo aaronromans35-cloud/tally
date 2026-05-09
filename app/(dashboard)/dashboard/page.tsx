@@ -1,8 +1,10 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useUserData } from '@/lib/context/UserDataContext'
+import { FinancialHealthScore } from '@/components/FinancialHealthScore'
+import { TourOverlay } from '@/components/TourOverlay'
 
 const fmt  = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 const fmtD = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -18,21 +20,22 @@ const DEBT_ICONS: Record<string, string> = {
 }
 
 // ── Widget catalog ─────────────────────────────────────────────────
-type WidgetId = 'greeting' | 'breakdown' | 'sparkline' | 'stats' | 'cashflow' | 'goals' | 'recent' | 'bills'
+type WidgetId = 'greeting' | 'breakdown' | 'sparkline' | 'health' | 'stats' | 'cashflow' | 'goals' | 'recent' | 'bills'
 type WidgetSize = 'full' | 'half'
 
 const WIDGET_CATALOG: { id: WidgetId; label: string; desc: string; size: WidgetSize; emoji: string }[] = [
-  { id: 'greeting',  label: 'Net Worth',        desc: 'Your total net worth with greeting',   size: 'full', emoji: '💎' },
-  { id: 'breakdown', label: 'Breakdown',         desc: 'Assets vs debt visual breakdown',      size: 'full', emoji: '📊' },
-  { id: 'sparkline', label: 'Portfolio Chart',   desc: '12-month portfolio trend line',        size: 'full', emoji: '📈' },
-  { id: 'stats',     label: 'Key Stats',         desc: 'Income, investments, and debt cards',  size: 'full', emoji: '🔢' },
-  { id: 'cashflow',  label: 'Cash Flow',         desc: 'Monthly income vs expenses donut',     size: 'half', emoji: '💸' },
-  { id: 'goals',     label: 'Goals',             desc: 'Progress toward your financial goals', size: 'half', emoji: '🎯' },
-  { id: 'recent',    label: 'Recent Activity',   desc: 'Your latest transactions',             size: 'half', emoji: '🕐' },
-  { id: 'bills',     label: 'Upcoming Bills',    desc: 'Debt payments due this month',         size: 'half', emoji: '📅' },
+  { id: 'greeting',  label: 'Net Worth',          desc: 'Your total net worth with greeting',   size: 'full', emoji: '💎' },
+  { id: 'breakdown', label: 'Breakdown',           desc: 'Assets vs debt visual breakdown',      size: 'full', emoji: '📊' },
+  { id: 'sparkline', label: 'Portfolio Chart',     desc: '12-month portfolio trend line',        size: 'full', emoji: '📈' },
+  { id: 'health',    label: 'Financial Health',    desc: 'Your financial health score 0–100',    size: 'full', emoji: '❤️' },
+  { id: 'stats',     label: 'Key Stats',           desc: 'Income, investments, and debt cards',  size: 'full', emoji: '🔢' },
+  { id: 'cashflow',  label: 'Cash Flow',           desc: 'Monthly income vs expenses donut',     size: 'half', emoji: '💸' },
+  { id: 'goals',     label: 'Goals',               desc: 'Progress toward your financial goals', size: 'half', emoji: '🎯' },
+  { id: 'recent',    label: 'Recent Activity',     desc: 'Your latest transactions',             size: 'half', emoji: '🕐' },
+  { id: 'bills',     label: 'Upcoming Bills',      desc: 'Debt payments due this month',         size: 'half', emoji: '📅' },
 ]
 
-const DEFAULT_LAYOUT: WidgetId[] = ['greeting', 'breakdown', 'sparkline', 'stats', 'cashflow', 'goals', 'recent', 'bills']
+const DEFAULT_LAYOUT: WidgetId[] = ['greeting', 'sparkline', 'health', 'stats', 'cashflow', 'goals', 'recent', 'bills']
 const STORAGE_KEY = 'nexus-widget-layout-v2'
 
 function loadLayout(): WidgetId[] {
@@ -78,7 +81,7 @@ function GreetingWidget({ profile, budgetSummary, portfolioValue, totalDebt, rou
   const net = budgetSummary.net
   const netWorth = portfolioValue - totalDebt
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
+    <div data-tour="tour-networth" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
       <div>
         <div className="eyebrow" style={{ marginBottom: 8 }}>{greeting}, {name}</div>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1.1 }}>Net worth</div>
@@ -456,7 +459,18 @@ function AddWidgetPanel({ layout, onAdd, onClose }: { layout: WidgetId[], onAdd:
 // ── Main Dashboard ────────────────────────────────────────────────
 export default function DashboardPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { profile, budgetSummary, totalDebt, portfolioValue, loading } = useUserData()
+  const [showTour, setShowTour] = useState(false)
+
+  useEffect(() => {
+    if (searchParams.get('tour') === '1') {
+      // Wait for layout to paint before starting tour
+      setTimeout(() => setShowTour(true), 800)
+      // Clean URL
+      router.replace('/dashboard')
+    }
+  }, [searchParams, router])
   const [recentTxns, setRecentTxns] = useState<Transaction[]>([])
   const [goals, setGoals]           = useState<Goal[]>([])
   const [debts, setDebts]           = useState<Debt[]>([])
@@ -535,6 +549,7 @@ export default function DashboardPage() {
       case 'breakdown': return <BreakdownWidget portfolioValue={portfolioValue} totalDebt={totalDebt} router={router} />
       case 'sparkline': return <SparklineWidget />
       case 'stats':     return <StatsWidget budgetSummary={budgetSummary} portfolioValue={portfolioValue} totalDebt={totalDebt} />
+      case 'health':    return <FinancialHealthScore />
       case 'cashflow':  return <CashFlowWidget budgetSummary={budgetSummary} router={router} />
       case 'goals':     return <GoalsWidget goals={goals} dataLoaded={dataLoaded} router={router} />
       case 'recent':    return <RecentWidget recentTxns={recentTxns} dataLoaded={dataLoaded} router={router} />
@@ -658,6 +673,9 @@ export default function DashboardPage() {
 
       {/* ── Add widget sheet ── */}
       {showAdd && <AddWidgetPanel layout={layout} onAdd={addWidget} onClose={() => setShowAdd(false)} />}
+
+      {/* ── Interactive Tour ── */}
+      {showTour && <TourOverlay onDone={() => setShowTour(false)} />}
     </div>
   )
 }

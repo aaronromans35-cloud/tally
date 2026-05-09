@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useWorkspace } from '@/lib/context/WorkspaceContext'
 
 type Transaction = {
   id: string
@@ -35,6 +36,7 @@ type FilterType = 'all' | 'income' | 'expense'
 
 export default function TransactionsPage() {
   const router = useRouter()
+  const { activeWorkspaceId } = useWorkspace()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<FilterType>('all')
@@ -48,16 +50,13 @@ export default function TransactionsPage() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('date', { ascending: false })
+      const q = supabase.from('transactions').select('*').eq('user_id', user.id).order('date', { ascending: false })
+      const { data, error } = await (activeWorkspaceId ? q.eq('workspace_id', activeWorkspaceId) : q.is('workspace_id', null))
       if (!error && data) setTransactions(data as Transaction[])
       setLoading(false)
     }
     load()
-  }, [])
+  }, [activeWorkspaceId])
 
   // Filter by selected month
   const monthFiltered = transactions.filter(t => {

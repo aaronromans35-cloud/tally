@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useUserData } from '@/lib/context/UserDataContext'
+import { useWorkspace } from '@/lib/context/WorkspaceContext'
 
 type Debt = { id: string; name: string; type: string; balance: number; interest_rate: number; minimum_payment: number }
 type DebtAutoPay = { debtId: string; amount: number; enabled: boolean; syncBudget: boolean }
@@ -66,6 +67,7 @@ const DEBT_ICONS: Record<string, string> = {
 
 export default function DebtPage() {
   const { refresh } = useUserData()
+  const { activeWorkspaceId } = useWorkspace()
   const [debts, setDebts]           = useState<Debt[]>([])
   const [strategy, setStrategy]     = useState<'avalanche' | 'snowball'>('avalanche')
   const [extraPayment, setExtraPayment] = useState(0)
@@ -83,11 +85,12 @@ export default function DebtPage() {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const { data } = await supabase.from('debts').select('*').eq('user_id', user.id).order('interest_rate', { ascending: false })
+    const q = supabase.from('debts').select('*').eq('user_id', user.id).order('interest_rate', { ascending: false })
+    const { data } = await (activeWorkspaceId ? q.eq('workspace_id', activeWorkspaceId) : q.is('workspace_id', null))
     setDebts(data ?? [])
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [activeWorkspaceId]) // eslint-disable-line
 
   // ── Load auto-pay settings & auto-apply this month ──
   useEffect(() => {
@@ -196,6 +199,7 @@ export default function DebtPage() {
 
     await supabase.from('debts').insert({
       user_id: user.id,
+      workspace_id: activeWorkspaceId ?? null,
       name: form.name,
       type: form.type,
       balance: parseFloat(form.balance),

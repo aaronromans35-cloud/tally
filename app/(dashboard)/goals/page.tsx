@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useUserData } from '@/lib/context/UserDataContext'
+import { useWorkspace } from '@/lib/context/WorkspaceContext'
 
 type Goal = { id: string; name: string; type: string; target_amount: number; current_amount: number; target_date: string; priority: number }
 
@@ -14,6 +15,7 @@ const GOAL_ICONS: Record<string, string> = {
 
 export default function GoalsPage() {
   const { refresh } = useUserData()
+  const { activeWorkspaceId } = useWorkspace()
   const [goals, setGoals] = useState<Goal[]>([])
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ name: '', type: 'retirement', target_amount: '', current_amount: '', target_date: '' })
@@ -25,11 +27,12 @@ export default function GoalsPage() {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const { data } = await supabase.from('goals').select('*').eq('user_id', user.id).order('priority')
+    const q = supabase.from('goals').select('*').eq('user_id', user.id).order('priority')
+    const { data } = await (activeWorkspaceId ? q.eq('workspace_id', activeWorkspaceId) : q.is('workspace_id', null))
     setGoals(data ?? [])
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [activeWorkspaceId])
 
   async function addGoal(e: React.FormEvent) {
     e.preventDefault()
@@ -38,6 +41,7 @@ export default function GoalsPage() {
     const { data: { user } } = await supabase.auth.getUser()
     await supabase.from('goals').insert({
       user_id: user!.id,
+      workspace_id: activeWorkspaceId ?? null,
       name: form.name,
       type: form.type,
       target_amount: form.target_amount ? parseFloat(form.target_amount) : null,

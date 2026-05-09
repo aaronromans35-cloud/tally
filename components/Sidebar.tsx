@@ -1,21 +1,216 @@
 'use client'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useUserData } from '@/lib/context/UserDataContext'
 import { useTheme } from '@/lib/context/ThemeContext'
+import { useWorkspace } from '@/lib/context/WorkspaceContext'
+import { useStreak } from '@/lib/hooks/useStreak'
 
-const NAV = [
-  { href: '/dashboard',    label: 'Overview',       icon: <IconHome /> },
-  { href: '/budget',       label: 'Budget',          icon: <IconWallet /> },
-  { href: '/portfolio',    label: 'Portfolio',       icon: <IconTrending /> },
-  { href: '/plan',         label: 'AI Plan',         icon: <IconSparkles /> },
-  { href: '/debt',         label: 'Debt Payoff',     icon: <IconCreditCard /> },
-  { href: '/tax',          label: 'Tax Assistant',   icon: <IconLandmark /> },
-  { href: '/goals',        label: 'Goals',           icon: <IconTarget /> },
-  { href: '/transactions', label: 'Transactions',    icon: <IconList /> },
-  { href: '/profile',      label: 'Settings',        icon: <IconSettings /> },
+const EMOJIS = ['👤','🧑','📚','💼','🏠','🎓','🚗','✈️','🎯','💡','🧪','📊','🏦','🌎','🎮']
+
+function WorkspaceTabs() {
+  const { workspaces, activeWorkspaceId, switchWorkspace, addWorkspace, deleteWorkspace } = useWorkspace()
+  const [adding, setAdding] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newEmoji, setNewEmoji] = useState('📚')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const handleAdd = async () => {
+    if (!newName.trim()) return
+    await addWorkspace(newName.trim(), newEmoji)
+    setNewName('')
+    setNewEmoji('📚')
+    setAdding(false)
+  }
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id)
+    await deleteWorkspace(id)
+    setDeletingId(null)
+  }
+
+  return (
+    <div style={{ padding: '10px 10px 0', borderBottom: '1px solid var(--nx-navy-700)' }}>
+      <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--nx-navy-500)', marginBottom: 6, paddingLeft: 2 }}>
+        Profiles
+      </div>
+
+      {/* Tab row */}
+      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
+
+        {/* Default "Me" tab */}
+        <button
+          onClick={() => switchWorkspace(null)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            padding: '4px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
+            background: activeWorkspaceId === null ? 'var(--nx-gold-500)' : 'rgba(255,255,255,0.07)',
+            color: activeWorkspaceId === null ? 'var(--nx-navy-900)' : 'var(--nx-navy-300)',
+            fontSize: 12, fontWeight: activeWorkspaceId === null ? 700 : 500,
+            transition: 'all 140ms',
+          }}
+        >
+          <span>👤</span> Me
+        </button>
+
+        {/* Named workspace tabs */}
+        {workspaces.map(ws => (
+          <div key={ws.id} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <button
+              onClick={() => switchWorkspace(ws.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '4px 26px 4px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                background: activeWorkspaceId === ws.id ? 'var(--nx-gold-500)' : 'rgba(255,255,255,0.07)',
+                color: activeWorkspaceId === ws.id ? 'var(--nx-navy-900)' : 'var(--nx-navy-300)',
+                fontSize: 12, fontWeight: activeWorkspaceId === ws.id ? 700 : 500,
+                transition: 'all 140ms', maxWidth: 110, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}
+            >
+              <span>{ws.emoji}</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{ws.name}</span>
+            </button>
+            {/* Delete × */}
+            <button
+              onClick={() => handleDelete(ws.id)}
+              disabled={deletingId === ws.id}
+              title={`Delete "${ws.name}"`}
+              style={{
+                position: 'absolute', right: 4,
+                width: 16, height: 16, borderRadius: '50%',
+                background: activeWorkspaceId === ws.id ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.12)',
+                border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: activeWorkspaceId === ws.id ? 'var(--nx-navy-800)' : 'var(--nx-navy-400)',
+                fontSize: 9, fontWeight: 700, padding: 0,
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+
+        {/* + Add button */}
+        <button
+          onClick={() => { setAdding(true); setTimeout(() => inputRef.current?.focus(), 50) }}
+          style={{
+            width: 26, height: 26, borderRadius: 6, border: '1px dashed var(--nx-navy-600)',
+            background: 'transparent', cursor: 'pointer', color: 'var(--nx-navy-400)',
+            fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'all 140ms', fontWeight: 400, lineHeight: 1,
+          }}
+          title="Add a practice profile"
+        >
+          +
+        </button>
+      </div>
+
+      {/* Add workspace inline form */}
+      {adding && (
+        <div style={{
+          background: 'rgba(255,255,255,0.04)', border: '1px solid var(--nx-navy-600)',
+          borderRadius: 8, padding: '10px', marginBottom: 10,
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--nx-gold-400)', marginBottom: 8 }}>
+            New practice profile
+          </div>
+          {/* Emoji picker */}
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
+            {EMOJIS.map(e => (
+              <button
+                key={e}
+                onClick={() => setNewEmoji(e)}
+                style={{
+                  width: 26, height: 26, borderRadius: 4, border: 'none', cursor: 'pointer', fontSize: 14,
+                  background: newEmoji === e ? 'var(--nx-gold-500)' : 'rgba(255,255,255,0.06)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+          {/* Name input */}
+          <input
+            ref={inputRef}
+            value={newName}
+            onChange={e => setNewName(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleAdd(); if (e.key === 'Escape') setAdding(false) }}
+            placeholder="e.g. 30yr old, Bad habits…"
+            style={{
+              width: '100%', padding: '6px 8px', borderRadius: 5,
+              border: '1px solid var(--nx-navy-600)', background: 'rgba(255,255,255,0.06)',
+              color: 'var(--nx-cream-50)', fontSize: 12, outline: 'none', boxSizing: 'border-box',
+            }}
+          />
+          <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+            <button
+              onClick={handleAdd}
+              disabled={!newName.trim()}
+              style={{
+                flex: 1, padding: '5px 0', borderRadius: 5, border: 'none', cursor: 'pointer',
+                background: newName.trim() ? 'var(--nx-gold-500)' : 'var(--nx-navy-700)',
+                color: newName.trim() ? 'var(--nx-navy-900)' : 'var(--nx-navy-500)',
+                fontSize: 12, fontWeight: 600,
+              }}
+            >
+              Add profile
+            </button>
+            <button
+              onClick={() => { setAdding(false); setNewName('') }}
+              style={{
+                padding: '5px 10px', borderRadius: 5, border: '1px solid var(--nx-navy-600)',
+                background: 'transparent', color: 'var(--nx-navy-400)', fontSize: 12, cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const NAV_STUDENT = [
+  { href: '/dashboard',    label: 'Overview',          icon: <IconHome />,       tour: undefined },
+  { href: '/budget',       label: 'Budget',            icon: <IconWallet />,     tour: 'tour-budget' },
+  { href: '/portfolio',    label: 'Portfolio',         icon: <IconTrending />,   tour: undefined },
+  { href: '/plan',         label: 'AI Plan',           icon: <IconSparkles />,   tour: 'tour-plan' },
+  { href: '/compound',     label: 'Compound Calc',     icon: <IconCompound />,   tour: 'tour-compound' },
+  { href: '/debt',         label: 'Debt Payoff',       icon: <IconCreditCard />, tour: undefined },
+  { href: '/tax',          label: 'Tax 101',           icon: <IconLandmark />,   tour: undefined },
+  { href: '/goals',        label: 'Goals',             icon: <IconTarget />,     tour: 'tour-goals' },
+  { href: '/class',        label: 'My Class',          icon: <IconUsers />,      tour: undefined },
+  { href: '/transactions', label: 'Transactions',      icon: <IconList />,       tour: undefined },
+  { href: '/profile',      label: 'Settings',          icon: <IconSettings />,   tour: undefined },
+]
+const NAV_TEACHER = [
+  { href: '/dashboard',    label: 'Overview',          icon: <IconHome />,       tour: undefined },
+  { href: '/teacher',      label: 'Teacher Dashboard', icon: <IconUsers />,      tour: undefined },
+  { href: '/budget',       label: 'Budget',            icon: <IconWallet />,     tour: 'tour-budget' },
+  { href: '/portfolio',    label: 'Portfolio',         icon: <IconTrending />,   tour: undefined },
+  { href: '/plan',         label: 'AI Plan',           icon: <IconSparkles />,   tour: 'tour-plan' },
+  { href: '/compound',     label: 'Compound Calc',     icon: <IconCompound />,   tour: 'tour-compound' },
+  { href: '/debt',         label: 'Debt Payoff',       icon: <IconCreditCard />, tour: undefined },
+  { href: '/tax',          label: 'Tax 101',           icon: <IconLandmark />,   tour: undefined },
+  { href: '/goals',        label: 'Goals',             icon: <IconTarget />,     tour: 'tour-goals' },
+  { href: '/transactions', label: 'Transactions',      icon: <IconList />,       tour: undefined },
+  { href: '/profile',      label: 'Settings',          icon: <IconSettings />,   tour: undefined },
+]
+const NAV_PERSONAL = [
+  { href: '/dashboard',    label: 'Overview',          icon: <IconHome />,       tour: undefined },
+  { href: '/budget',       label: 'Budget',            icon: <IconWallet />,     tour: 'tour-budget' },
+  { href: '/portfolio',    label: 'Portfolio',         icon: <IconTrending />,   tour: undefined },
+  { href: '/plan',         label: 'AI Plan',           icon: <IconSparkles />,   tour: 'tour-plan' },
+  { href: '/compound',     label: 'Compound Calc',     icon: <IconCompound />,   tour: 'tour-compound' },
+  { href: '/debt',         label: 'Debt Payoff',       icon: <IconCreditCard />, tour: undefined },
+  { href: '/tax',          label: 'Tax 101',           icon: <IconLandmark />,   tour: undefined },
+  { href: '/goals',        label: 'Goals',             icon: <IconTarget />,     tour: 'tour-goals' },
+  { href: '/transactions', label: 'Transactions',      icon: <IconList />,       tour: undefined },
+  { href: '/profile',      label: 'Settings',          icon: <IconSettings />,   tour: undefined },
 ]
 
 const fmt = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
@@ -36,6 +231,8 @@ function IconLandmark()    { return <Svg><line x1="3" y1="22" x2="21" y2="22"/><
 function IconTarget()      { return <Svg><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></Svg> }
 function IconList()        { return <Svg><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></Svg> }
 function IconSettings()    { return <Svg size={16}><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/><circle cx="12" cy="12" r="3"/></Svg> }
+function IconCompound()    { return <Svg><path d="M2 20h20M5 20V10l7-7 7 7v10"/><path d="M9 20v-5h6v5"/></Svg> }
+function IconUsers()       { return <Svg><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></Svg> }
 
 interface SidebarProps {
   mobile?: boolean
@@ -47,7 +244,12 @@ export default function Sidebar({ mobile, onClose }: SidebarProps) {
   const router    = useRouter()
   const { budgetSummary, totalDebt, portfolioValue, goalCount, loading, profile } = useUserData()
   const { theme, toggle } = useTheme()
+  const { activeWorkspace, isDefaultWorkspace } = useWorkspace()
+  const streak = useStreak()
   const [email, setEmail] = useState('')
+
+  const acctType = profile?.account_type ?? 'personal'
+  const NAV = acctType === 'teacher' ? NAV_TEACHER : acctType === 'student' ? NAV_STUDENT : NAV_PERSONAL
 
   useEffect(() => {
     createClient().auth.getUser().then(({ data }) => {
@@ -104,16 +306,38 @@ export default function Sidebar({ mobile, onClose }: SidebarProps) {
         )}
       </div>
 
+      {/* Workspace tabs */}
+      <WorkspaceTabs />
+
+      {/* Practice mode banner */}
+      {!isDefaultWorkspace && (
+        <div style={{
+          margin: '8px 10px 0',
+          padding: '7px 10px',
+          borderRadius: 6,
+          background: 'rgba(201,164,55,0.12)',
+          border: '1px solid var(--nx-gold-700)',
+          fontSize: 11,
+          color: 'var(--nx-gold-300)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+        }}>
+          <span>🧪</span>
+          <span><strong>Practice mode</strong> — {activeWorkspace?.name}. All data is isolated.</span>
+        </div>
+      )}
+
       {/* Nav */}
       <nav style={{ flex: 1, padding: '12px 10px', display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto' }}>
         <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--nx-navy-400)', padding: '8px 10px 6px' }}>
           Menu
         </p>
 
-        {NAV.map(({ href, label, icon }) => {
+        {NAV.map(({ href, label, icon, tour }) => {
           const active = pathname === href
           return (
-            <Link key={href} href={href} onClick={onClose} style={{
+            <Link key={href} href={href} onClick={onClose} data-tour={tour} style={{
               display: 'flex', alignItems: 'center', gap: 10,
               padding: '8px 10px', borderRadius: 6,
               fontSize: 13.5, fontWeight: 500,
@@ -135,6 +359,27 @@ export default function Sidebar({ mobile, onClose }: SidebarProps) {
             </Link>
           )
         })}
+
+        {/* Streak badge */}
+        {streak.current > 0 && (
+          <div style={{
+            margin: '8px 0 0', padding: '7px 12px',
+            background: streak.current >= 7 ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)',
+            border: `1px solid ${streak.current >= 7 ? 'rgba(245,158,11,0.3)' : 'var(--nx-navy-700)'}`,
+            borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 16 }}>🔥</span>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: streak.current >= 7 ? 'var(--nx-gold-300)' : 'var(--nx-cream-50)' }}>
+                  {streak.current} day streak
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--nx-navy-400)' }}>Best: {streak.longest}d</div>
+              </div>
+            </div>
+            {streak.current >= 7 && <span style={{ fontSize: 14 }}>⭐</span>}
+          </div>
+        )}
 
         {/* Live stats */}
         <div style={{

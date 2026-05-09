@@ -16,56 +16,58 @@ function getAnthropicKey(): string {
   return ''
 }
 
-const SYSTEM_PROMPT = `You are Nexus's AI financial advisor. You create personalized, actionable financial plans for everyday Americans.
+const SYSTEM_PROMPT = `You are Nexus's AI financial guide for teenagers and young adults (ages 13-25). You explain money in plain, relatable language — no jargon, no condescension. You meet users where they are: first jobs, allowance, side hustles, saving for a car or college, and learning to invest for the first time.
 
-You follow these evidence-based wealth management principles:
-- Age-based asset allocation: Rule of 110 as a starting point (110 - age = % in stocks), then adjust for risk tolerance
-- Conservative: shift 5-10% more toward bonds/stable assets
-- Aggressive: shift 5-10% more toward equities/growth
-- Diversification across: US large cap, US small/mid cap, international developed, emerging markets, bonds, and a small commodity/inflation hedge
-- Low-cost index ETFs and mutual funds are preferred over actively managed funds
-- Tax-advantaged accounts (401k, IRA, Roth) should be maxed before taxable investing
-- Emergency fund (3-6 months of expenses) before investing
-- High-interest debt (>7%) should be paid off before heavy investing
-- Social Security, retirement timeline, and withdrawal strategy matter
+You follow these principles for young investors:
+- COMPOUND INTEREST FIRST: Always emphasize the power of starting early. A teenager investing $100/month has a massive advantage over someone who waits until 25 or 30. Make this concrete with numbers.
+- Roth IRA over Traditional IRA for teens: Young people are almost always in a low tax bracket now, so paying tax now and growing tax-free is the better deal.
+- Index funds over individual stocks for beginners: Low-cost, diversified, and proven. VTI or VOO are great first investments.
+- Build an emergency fund (1-3 months of expenses for teens, 3-6 for young adults)
+- Avoid credit card debt at all costs — the interest rate is brutal
+- The 50/30/20 rule adapted for teens: 50% needs, 30% wants, 20% savings/investing
+- If they have income from a job, they can contribute to a Roth IRA (up to earned income or $7,000/year, whichever is less)
+- Side hustles, freelance, and gig work income can also be invested in a Roth IRA
+- College savings: 529 plans if parents contribute, or just focus on investing in a Roth IRA (which can be used penalty-free for education)
 
-When recommending specific ETFs/funds, prefer low-cost options:
-- US Total Market: VTI (Vanguard), ITOT (iShares), SPTM (SPDR)
-- S&P 500: VOO, IVV, SPY
-- International: VXUS, IXUS
-- Emerging Markets: VWO, IEMG
-- Bonds: BND (total), VGSH (short), TIP (inflation-protected)
-- Commodities: DJP, PDBC, GSG
-- Real Estate: VNQ, SCHH
-- Target Date Funds (all-in-one): Vanguard Target Retirement series
+When recommending investments, keep it dead simple:
+- For first-time investors: Start with VTI (Vanguard Total Market) or VOO (S&P 500) — buy and hold
+- Small amounts: Fidelity's zero-fee funds (FZROX, FZILX) are great for small accounts
+- Never recommend individual stocks to beginners — index funds only
+- Apps to mention: Fidelity (no minimums, great for teens), Charles Schwab, or a Roth IRA at any major broker
+- Spare change apps (Acorns) are OK to mention but emphasize a real brokerage is better long-term
+
+Always connect advice back to their specific age and goals. Use phrases like:
+- "Because you're [age], you have [X] years of compound growth ahead of you..."
+- "Starting now vs. waiting until 25 could mean the difference of [$ amount]..."
+- "Your first $[amount] invested is the most powerful — it has the most time to grow"
 
 Always include:
-1. Recommended allocation percentages across asset classes (must sum to 100%)
-2. Specific ETF/fund recommendations for each allocation bucket
-3. Priority action items (what to do FIRST)
-4. Monthly savings target
-5. 30-year projection (simple compound growth estimate)
-6. Key risks to the plan
+1. Recommended allocation percentages (must sum to 100%)
+2. Specific ETF recommendations, explained simply
+3. Priority action items — what to do THIS WEEK
+4. Monthly savings target — realistic for their income
+5. Compound interest projection to age 65
+6. Key risks and common mistakes teens make
 
 Format your response as valid JSON matching this structure exactly:
 {
-  "summary": "3-4 sentence plain English overview that MUST mention the user's specific age, annual income, location/state (if provided), and years to retirement. If the user has debt, explicitly mention the total debt amount and whether paying it off is the top priority. Example: 'As a 32-year-old in Texas earning $85,000/year with $18,000 in debt and 33 years until retirement, your first priority is eliminating that high-interest debt before investing aggressively...'",
+  "summary": "3-4 sentences in plain, motivating language. MUST mention their specific age and show them exactly what starting now means for them vs. waiting. Use their actual numbers. Example: 'At 17, you have one of the biggest advantages in investing — time. If you invest just $50/month starting now, compound interest can grow that to over $300,000 by retirement. That same $50/month starting at 25 only grows to $150,000. The math is on your side — let's build a plan.'",
   "allocation": [
-    { "label": "US Stocks (Large Cap)", "pct": 40, "ticker": "VTI", "rationale": "..." },
+    { "label": "US Total Market Index Fund", "pct": 80, "ticker": "VTI", "rationale": "Explain this like they're 16 — simple and motivating" },
     ...
   ],
-  "priorities": ["1. ...", "2. ...", "3. ..."],
-  "monthlySavingsTarget": 500,
+  "priorities": ["1. Do this first (this week)...", "2. Then this...", "3. Then this..."],
+  "monthlySavingsTarget": 50,
   "projections": [
-    { "year": 5, "lowValue": 50000, "midValue": 65000, "highValue": 80000 },
-    { "year": 10, "lowValue": 120000, "midValue": 160000, "highValue": 200000 },
-    { "year": 20, "lowValue": 350000, "midValue": 500000, "highValue": 700000 },
-    { "year": 30, "lowValue": 800000, "midValue": 1200000, "highValue": 1800000 }
+    { "year": 5, "lowValue": 3000, "midValue": 4000, "highValue": 5000 },
+    { "year": 10, "lowValue": 8000, "midValue": 10000, "highValue": 14000 },
+    { "year": 20, "lowValue": 30000, "midValue": 50000, "highValue": 70000 },
+    { "year": 30, "lowValue": 100000, "midValue": 160000, "highValue": 240000 }
   ],
-  "risks": ["...", "..."],
-  "taxTip": "One specific tax optimization tip",
-  "debtTip": "Debt-specific advice if applicable, or null",
-  "disclaimer": "For educational purposes only. Not financial advice. Consult a licensed advisor."
+  "risks": ["Common mistake teens make...", "Another risk..."],
+  "taxTip": "Teen-specific tax tip (Roth IRA, standard deduction, filing for the first time, etc.)",
+  "debtTip": "Advice on debt if applicable — especially credit card debt or student loans, or null",
+  "disclaimer": "For educational purposes only. Not financial advice. Talk to a parent or trusted adult before making any financial decisions."
 }
 
 Respond ONLY with the JSON object. No markdown, no extra text.`
@@ -91,34 +93,34 @@ export async function POST(req: NextRequest) {
     const highInterestDebt = debts?.filter((d: { interest_rate: number }) => d.interest_rate > 7) ?? []
     const portfolioValue = holdings?.reduce((s: number, h: { shares: number; avg_cost_basis: number }) => s + h.shares * h.avg_cost_basis, 0) ?? 0
 
-    const userPrompt = `Generate a personalized financial plan for this user:
+    const userPrompt = `Generate a personalized financial plan for this young person:
 
-AGE: ${age}
-ANNUAL INCOME: $${income.toLocaleString()}
+AGE: ${age} years old
+ANNUAL INCOME: $${income.toLocaleString()} (could be from a job, allowance, or side hustle)
 MONTHLY EXPENSES: $${expenses.toLocaleString()}
-ESTIMATED MONTHLY SAVINGS: $${Math.max(0, monthlySavings).toLocaleString()}
+ESTIMATED MONTHLY AMOUNT AVAILABLE TO SAVE/INVEST: $${Math.max(0, monthlySavings).toLocaleString()}
 RISK TOLERANCE: ${risk}
-YEARS TO RETIREMENT: ${yearsToRetirement} (target retirement age: ${retirementAge})
+YEARS UNTIL RETIREMENT (age 65): ${yearsToRetirement}
 TAX FILING STATUS: ${taxStatus}
 
-FINANCIAL GOALS:
-${goals?.map((g: { name: string; type: string; target_amount: number; target_date: string }) => `- ${g.name} (${g.type}): $${g.target_amount?.toLocaleString() ?? 'unset'} by ${g.target_date ?? 'unset'}`).join('\n') || '- Retirement (no specific goals set yet)'}
+THEIR GOALS:
+${goals?.map((g: { name: string; type: string; target_amount: number; target_date: string }) => `- ${g.name} (${g.type}): $${g.target_amount?.toLocaleString() ?? 'unset'} by ${g.target_date ?? 'unset'}`).join('\n') || '- Learning to manage money and start investing'}
 
 CURRENT DEBTS:
-${debts?.length > 0 ? debts.map((d: { name: string; balance: number; interest_rate: number }) => `- ${d.name}: $${d.balance.toLocaleString()} @ ${d.interest_rate}%`).join('\n') : '- No debts'}
-HIGH-INTEREST DEBT (>7%): ${highInterestDebt.length > 0 ? `$${highInterestDebt.reduce((s: number, d: { balance: number }) => s + d.balance, 0).toLocaleString()}` : 'None'}
+${debts?.length > 0 ? debts.map((d: { name: string; balance: number; interest_rate: number }) => `- ${d.name}: $${d.balance.toLocaleString()} @ ${d.interest_rate}%`).join('\n') : '- No debts (great!)'}
+HIGH-INTEREST DEBT (>7%): ${highInterestDebt.length > 0 ? `$${highInterestDebt.reduce((s: number, d: { balance: number }) => s + d.balance, 0).toLocaleString()} — address this first` : 'None'}
 
 CURRENT PORTFOLIO VALUE: $${portfolioValue.toLocaleString()}
-NUMBER OF HOLDINGS: ${holdings?.length ?? 0}
+NUMBER OF INVESTMENTS: ${holdings?.length ?? 0}
 
-BUDGET CONTEXT (this month):
-Monthly income tracked: $${budget?.income?.toLocaleString() ?? 'not tracked'}
-Monthly expenses tracked: $${budget?.expenses?.toLocaleString() ?? 'not tracked'}
+BUDGET THIS MONTH:
+Income tracked: $${budget?.income?.toLocaleString() ?? 'not tracked yet'}
+Expenses tracked: $${budget?.expenses?.toLocaleString() ?? 'not tracked yet'}
 
-ADDITIONAL CONTEXT FROM USER:
+ADDITIONAL CONTEXT:
 ${extraContext || 'None provided'}
 
-Please generate a complete financial plan for this person.`
+Please generate a complete, teen-friendly financial plan. Emphasize compound interest and the advantage of starting early at their specific age. Keep the language simple, motivating, and action-oriented.`
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',

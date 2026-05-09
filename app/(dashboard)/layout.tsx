@@ -4,18 +4,20 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import { UserDataProvider, useUserData } from '@/lib/context/UserDataContext'
+import { WorkspaceProvider, useWorkspace } from '@/lib/context/WorkspaceContext'
 
-// Redirect new users (no profile) to onboarding
+// Only redirect to onboarding on the default workspace
 function OnboardingGate({ children }: { children: React.ReactNode }) {
   const { profile, loading } = useUserData()
+  const { isDefaultWorkspace, wsLoading } = useWorkspace()
   const router = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
-    if (!loading && profile === null && pathname !== '/onboarding') {
+    if (!loading && !wsLoading && isDefaultWorkspace && profile === null && pathname !== '/onboarding') {
       router.replace('/onboarding')
     }
-  }, [loading, profile, pathname, router])
+  }, [loading, wsLoading, isDefaultWorkspace, profile, pathname, router])
 
   return <>{children}</>
 }
@@ -102,6 +104,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   return (
+    <WorkspaceProvider>
     <UserDataProvider>
       <OnboardingGate>
       {/* Mobile top bar */}
@@ -146,5 +149,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <MobileBottomNav />
       </OnboardingGate>
     </UserDataProvider>
+    </WorkspaceProvider>
   )
 }

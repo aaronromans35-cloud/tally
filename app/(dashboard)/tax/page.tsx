@@ -106,14 +106,149 @@ export default function TaxPage() {
     return h.account_type === 'taxable'
   })
 
+  const [showTax101, setShowTax101] = useState(true)
+  const [expandedCard, setExpandedCard] = useState<string | null>(null)
+
+  const tax101Cards = [
+    {
+      id: 'w2',
+      emoji: '📄',
+      title: 'What is a W-2?',
+      short: 'The form your employer sends you every January showing how much you earned and how much tax was withheld.',
+      detail: `Your employer sends you a W-2 by January 31st each year. It shows:\n\n• Box 1: Your total wages (what you actually earned)\n• Box 2: Federal income tax your employer withheld from your paychecks\n• Boxes 3-6: Social Security & Medicare taxes (called FICA)\n\nYou use this form when filing your tax return. If you had multiple jobs, you get a W-2 from each one. Keep this safe — it's important!`,
+    },
+    {
+      id: 'fica',
+      emoji: '💸',
+      title: 'What is FICA?',
+      short: 'Taxes automatically taken from every paycheck for Social Security (6.2%) and Medicare (1.45%). Your employer matches it.',
+      detail: `FICA stands for Federal Insurance Contributions Act. It's automatically deducted from every paycheck, no matter what.\n\n• Social Security tax: 6.2% of your wages (up to $168,600/year)\n• Medicare tax: 1.45% of your wages (no limit)\n• Total: 7.65% of every paycheck\n\nHere's the thing: your employer also pays another 7.65% on top of that — so the total is 15.3%. FICA pays for Social Security and Medicare programs that you'll benefit from later in life.\n\nIf you're self-employed (freelance, side hustle), you pay both the employee AND employer share — that's why self-employment tax is 15.3%.`,
+    },
+    {
+      id: 'brackets',
+      emoji: '📊',
+      title: 'How Tax Brackets Work',
+      short: 'You only pay higher rates on the money ABOVE each threshold — not on everything you earn. Most teens pay 10% or 12%.',
+      detail: `Tax brackets work like steps — you only pay each rate on the income in that range, not on all your income.\n\nExample: If you earn $20,000:\n• First $14,600: $0 tax (standard deduction for 2024)\n• Next $5,400 taxed at 10% = $540\n• Total tax owed: $540 — that's an effective rate of 2.7%!\n\nMost teens and young adults earning under $47,150 are in the 10-12% bracket. That's actually great news because Roth IRA contributions are taxed at this low rate now, then grow completely tax-free.`,
+    },
+    {
+      id: 'file',
+      emoji: '🗂️',
+      title: 'Do I Need to File Taxes?',
+      short: 'If you earned more than $14,600 (2024), yes. If less, you might still want to — you could get a refund!',
+      detail: `You MUST file if you earned more than:\n• $14,600 as a single filer (the standard deduction)\n• Any amount if you're self-employed and made $400+\n\nYou SHOULD file even if you earned less because:\n• If your employer withheld federal tax (check Box 2 on your W-2), you'll get it back as a refund\n• To claim the Earned Income Tax Credit if eligible\n• To build a tax history (helpful later for loans, apartments, etc.)\n\nHow to file for FREE:\n• IRS Free File (income under $79,000): irs.gov/freefile\n• FreeTaxUSA — free federal, small fee for state\n• Tax help at your school's VITA (Volunteer Income Tax Assistance) program`,
+    },
+    {
+      id: 'roth',
+      emoji: '🏦',
+      title: 'Roth IRA: The Teen Superpower',
+      short: 'Invest after-tax dollars now at your low tax rate. Then never pay tax on that money again — even if it grows to $1M.',
+      detail: `A Roth IRA is the single best financial tool available to teenagers. Here's why:\n\n• You contribute money you've already paid tax on\n• It grows completely tax-free\n• You withdraw it tax-free in retirement — even the growth!\n\nThe math is incredible: $1,000 invested at 17 in a Roth IRA could be worth $20,000+ at 65 — and you'd owe $0 in taxes on any of that growth.\n\nRules to know:\n• You must have earned income (job, freelance, etc.)\n• Max contribution: $7,000/year (or your total earned income, whichever is less)\n• Your parent or guardian can open a "custodial Roth IRA" for you\n• Best places to open one: Fidelity or Charles Schwab (no minimums)\n\nBottom line: If you have any job income at all, open a Roth IRA and invest every dollar you can.`,
+    },
+    {
+      id: '1099',
+      emoji: '🧾',
+      title: 'What is a 1099?',
+      short: 'If you freelance, babysit, do odd jobs, or sell stuff online, you might get a 1099 instead of a W-2.',
+      detail: `A 1099 is used when you're paid as an independent contractor (not an employee).\n\nCommon situations for teens:\n• Freelance work (design, tutoring, coding)\n• Babysitting, lawn mowing, odd jobs\n• Selling on Etsy, eBay, or other platforms\n• Gig apps (if you earn enough)\n\nKey difference from W-2:\n• No employer withholds taxes for you\n• You owe self-employment tax (15.3%) PLUS income tax\n• If you earned $400+ from freelance work, you must file a tax return\n\nPro tip: Set aside about 25-30% of every freelance payment for taxes. And keep records of any expenses (equipment, supplies) — they reduce your taxable income.`,
+    },
+  ]
+
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
         <div className="eyebrow" style={{ marginBottom: 8 }}>Tax year 2026</div>
-        <h1 className="page-title" style={{ marginBottom: 4 }}>Tax Assistant</h1>
+        <h1 className="page-title" style={{ marginBottom: 4 }}>Tax 101 + Assistant</h1>
         <p className="text-sm" style={{ color: 'var(--muted)' }}>
           Estimated figures based on 2024 federal tax brackets. State taxes not included. Not tax advice — consult a CPA.
         </p>
+      </div>
+
+      {/* Tax 101 Intro */}
+      <div className="card mb-6" style={{ border: '1px solid var(--nx-gold-200)', background: 'var(--nx-gold-50)' }}>
+        <button
+          onClick={() => setShowTax101(v => !v)}
+          style={{
+            width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 22 }}>🧾</span>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--nx-navy-900)' }}>Tax 101 — Start Here</div>
+              <div style={{ fontSize: 13, color: 'var(--nx-gold-700)' }}>Everything you need to know about taxes as a teen or young adult</div>
+            </div>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--nx-gold-700)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ transform: showTax101 ? 'rotate(180deg)' : 'none', transition: 'transform 200ms', flexShrink: 0 }}>
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+
+        {showTax101 && (
+          <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+            {tax101Cards.map(card => (
+              <div
+                key={card.id}
+                style={{
+                  background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10,
+                  overflow: 'hidden', cursor: 'pointer',
+                }}
+                onClick={() => setExpandedCard(expandedCard === card.id ? null : card.id)}
+              >
+                <div style={{ padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: 20, flexShrink: 0, marginTop: 1 }}>{card.emoji}</span>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--foreground)', marginBottom: 4 }}>{card.title}</div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>{card.short}</div>
+                    </div>
+                  </div>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ transform: expandedCard === card.id ? 'rotate(180deg)' : 'none', transition: 'transform 200ms', flexShrink: 0, marginTop: 4 }}>
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </div>
+                {expandedCard === card.id && (
+                  <div style={{ padding: '0 16px 16px', borderTop: '1px solid var(--border)' }}>
+                    <div style={{ paddingTop: 14, fontSize: 13, color: 'var(--foreground)', lineHeight: 1.7, whiteSpace: 'pre-line' }}>
+                      {card.detail}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {/* Free filing resources */}
+            <div style={{ background: 'var(--nx-navy-800)', borderRadius: 10, padding: '14px 16px', gridColumn: '1 / -1' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--nx-gold-400)', marginBottom: 10 }}>📎 Free Filing Resources</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                {[
+                  { name: 'IRS Free File', url: 'https://www.irs.gov/filing/free-file-do-your-federal-taxes-for-free', desc: 'Official IRS program — free if income < $79K' },
+                  { name: 'FreeTaxUSA', url: 'https://www.freetaxusa.com', desc: 'Free federal return, low-cost state' },
+                  { name: 'VITA Program', url: 'https://www.irs.gov/vita', desc: 'Free tax prep help from IRS-certified volunteers' },
+                  { name: 'Cash App Taxes', url: 'https://cash.app/taxes', desc: 'Completely free, even state returns' },
+                ].map(r => (
+                  <a
+                    key={r.name}
+                    href={r.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      display: 'flex', flexDirection: 'column', flex: '1 1 180px',
+                      padding: '10px 12px', borderRadius: 8,
+                      background: 'rgba(255,255,255,0.06)', border: '1px solid var(--nx-navy-700)',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--nx-cream-50)', marginBottom: 3 }}>{r.name} ↗</span>
+                    <span style={{ fontSize: 11, color: 'var(--nx-navy-400)', lineHeight: 1.4 }}>{r.desc}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Income Input */}
@@ -134,154 +269,151 @@ export default function TaxPage() {
         </div>
       </div>
 
-      {/* Tax Summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+      {/* Tax Summary — simplified for teens */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
         {[
-          { label: 'Est. Federal Tax', value: fmt(tax), color: 'var(--nx-neg-500)' },
-          { label: 'Effective Rate', value: `${(effectiveRate * 100).toFixed(1)}%`, color: 'var(--nx-warn-500)' },
-          { label: 'Marginal Rate', value: `${(marginalRate * 100).toFixed(0)}%`, color: 'var(--nx-warn-500)' },
-          { label: 'LT Cap Gains Rate', value: `${(ltcg * 100).toFixed(0)}%`, color: 'var(--nx-navy-700)' },
+          { label: 'Est. Federal Tax', value: fmt(tax), color: 'var(--nx-neg-500)', note: 'for the year' },
+          { label: 'Effective Rate', value: `${(effectiveRate * 100).toFixed(1)}%`, color: 'var(--nx-warn-500)', note: 'of your total income' },
+          { label: 'Tax Bracket', value: `${(marginalRate * 100).toFixed(0)}%`, color: 'var(--nx-navy-700)', note: 'on income above threshold' },
         ].map(s => (
           <div key={s.label} className="card" style={{ padding: '18px 20px' }}>
-            <div className="eyebrow" style={{ marginBottom: 8 }}>{s.label}</div>
-            <div className="num-display" style={{ fontSize: 28, lineHeight: 1, color: s.color }}>{s.value}</div>
+            <div className="eyebrow" style={{ marginBottom: 6 }}>{s.label}</div>
+            <div className="num-display" style={{ fontSize: 28, lineHeight: 1, color: s.color, marginBottom: 4 }}>{s.value}</div>
+            <div style={{ fontSize: 11, color: 'var(--muted)' }}>{s.note}</div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Capital Gains Tracker */}
-        <div className="card">
-          <h2 className="font-semibold mb-4">Capital Gains Tracker</h2>
-          <div className="flex flex-col gap-4">
-            <div>
-              <label className="label">Realized Short-Term Gains YTD ($) <span style={{ color: 'var(--muted)' }}>— taxed as ordinary income</span></label>
-              <input className="input" type="number" value={realizedGains.shortTerm} onChange={e => setRealizedGains(r => ({ ...r, shortTerm: e.target.value }))} placeholder="0" />
-            </div>
-            <div>
-              <label className="label">Realized Long-Term Gains YTD ($) <span style={{ color: 'var(--muted)' }}>— held 1+ year</span></label>
-              <input className="input" type="number" value={realizedGains.longTerm} onChange={e => setRealizedGains(r => ({ ...r, longTerm: e.target.value }))} placeholder="0" />
-            </div>
-
-            {(stGains > 0 || ltGains > 0) && (
-              <div className="p-3 rounded-lg text-sm flex flex-col gap-1" style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
-                {stGains > 0 && <div className="flex justify-between"><span>Short-term gains tax ({(marginalRate * 100).toFixed(0)}%)</span><span style={{ color: 'var(--red)' }}>{fmtD(stTax)}</span></div>}
-                {ltGains > 0 && <div className="flex justify-between"><span>Long-term gains tax ({(ltcg * 100).toFixed(0)}%)</span><span style={{ color: 'var(--yellow)' }}>{fmtD(ltTax)}</span></div>}
-                <div className="flex justify-between font-bold pt-1" style={{ borderTop: '1px solid var(--border)' }}>
-                  <span>Total cap gains tax</span><span style={{ color: 'var(--red)' }}>{fmtD(totalCapGainsTax)}</span>
-                </div>
-              </div>
-            )}
-
-            {quarterlyPayment > 0 && (
-              <div className="p-3 rounded-lg text-sm" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}>
-                ⏰ <strong>Quarterly estimated tax:</strong>{' '}
-                <span style={{ color: 'var(--yellow)' }}>{fmt(quarterlyPayment)}</span> per quarter
-                <div className="mt-1" style={{ color: 'var(--muted)' }}>Due: Apr 15 · Jun 17 · Sep 16 · Jan 15</div>
-              </div>
-            )}
+      {/* What does this mean — plain English */}
+      {income > 0 && (
+        <div className="card mb-6" style={{ background: 'var(--nx-navy-800)', border: '1px solid var(--nx-navy-700)' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--nx-gold-400)', marginBottom: 10 }}>
+            What this means for you
           </div>
-        </div>
-
-        {/* Contribution Room */}
-        <div className="card">
-          <h2 className="font-semibold mb-4">2024 Tax-Advantaged Contribution Room</h2>
-          <div className="flex flex-col gap-4">
-            {[
-              { label: '401(k) / 403(b)', max: k401Max, note: '+$7,500 if age 50+', color: '#6366f1' },
-              { label: 'IRA (Traditional or Roth)', max: iraMax, note: '+$1,000 if age 50+', color: '#3b82f6' },
-              { label: 'HSA (if on HDHP)', max: hsaMax, note: 'Family: $8,300', color: '#22c55e' },
-            ].map(a => (
-              <div key={a.label} className="p-3 rounded-lg" style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
-                <div className="flex justify-between mb-1">
-                  <span className="font-medium text-sm">{a.label}</span>
-                  <span className="font-bold text-sm" style={{ color: a.color }}>{fmt(a.max)}</span>
-                </div>
-                <div className="text-xs" style={{ color: 'var(--muted)' }}>{a.note}</div>
-              </div>
-            ))}
-
-            <div className="p-3 rounded-lg text-sm" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
-              💡 Max all accounts = <strong style={{ color: 'var(--green)' }}>{fmt(k401Max + iraMax + hsaMax)}</strong> in tax-advantaged savings per year.
-              At your {(marginalRate * 100).toFixed(0)}% bracket, that saves up to{' '}
-              <strong style={{ color: 'var(--green)' }}>{fmt((k401Max + iraMax + hsaMax) * marginalRate)}</strong> in taxes.
-            </div>
-          </div>
-        </div>
-
-        {/* Tax-Loss Harvesting */}
-        <div className="card">
-          <h2 className="font-semibold mb-1">Tax-Loss Harvesting</h2>
-          <p className="text-sm mb-4" style={{ color: 'var(--foreground-secondary)' }}>
-            Sell losing positions to offset gains and reduce your tax bill — then immediately buy a similar fund to stay invested.
+          <p style={{ fontSize: 14, color: 'var(--nx-navy-200)', lineHeight: 1.7, margin: 0 }}>
+            On <strong style={{ color: 'var(--nx-cream-50)' }}>{fmt(income)}/year</strong> of income, you&apos;re estimated to owe{' '}
+            <strong style={{ color: 'var(--nx-neg-400)' }}>{fmt(tax)}</strong> in federal taxes.
+            Your effective rate is <strong style={{ color: 'var(--nx-cream-50)' }}>{(effectiveRate * 100).toFixed(1)}%</strong> — that&apos;s the percentage of your total income that goes to taxes (not the bracket rate, which only applies to the income above the threshold).
+            {marginalRate <= 0.12 && (
+              <> <span style={{ color: 'var(--nx-gold-400)' }}>💡 You&apos;re in a low tax bracket right now — perfect timing to contribute to a Roth IRA and lock in these low rates.</span></>
+            )}
           </p>
-          {tlhCandidates.length === 0 ? (
-            <p className="text-sm" style={{ color: 'var(--muted)' }}>Add taxable holdings in Portfolio to see your positions here.</p>
-          ) : (
-            <div className="flex flex-col gap-2 mb-4">
-              {tlhCandidates.map(h => (
-                <div key={h.ticker} className="p-3 rounded-xl text-sm" style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
-                  <div className="flex justify-between mb-1">
-                    <span className="font-semibold">{h.ticker}</span>
-                    <span className="font-semibold">{fmt(h.shares * h.avg_cost_basis)} total basis</span>
-                  </div>
-                  <div className="flex justify-between" style={{ color: 'var(--foreground-secondary)' }}>
-                    <span>{h.shares} shares · cost {fmtD(h.avg_cost_basis)}/sh</span>
-                    <span>Check live price in Portfolio →</span>
-                  </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Roth IRA — the teen power move */}
+        <div className="card">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <h2 className="font-semibold">🏦 Roth IRA — Your Best Move</h2>
+          </div>
+          <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>
+            The single most powerful tax move for teens and young adults. Contribute now at a low tax rate, grow tax-free, withdraw tax-free in retirement.
+          </p>
+          <div className="flex flex-col gap-3">
+            <div className="p-3 rounded-lg" style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
+              <div className="flex justify-between mb-1">
+                <span className="font-medium text-sm">2024 Roth IRA limit</span>
+                <span className="font-bold text-sm" style={{ color: 'var(--nx-gold-600)' }}>{fmt(iraMax)}/year</span>
+              </div>
+              <div className="text-xs" style={{ color: 'var(--muted)' }}>Or your total earned income — whichever is less</div>
+            </div>
+            <div className="p-3 rounded-lg" style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
+              <div className="flex justify-between mb-1">
+                <span className="font-medium text-sm">Monthly to max it out</span>
+                <span className="font-bold text-sm" style={{ color: 'var(--nx-gold-600)' }}>{fmt(Math.round(iraMax / 12))}/month</span>
+              </div>
+              <div className="text-xs" style={{ color: 'var(--muted)' }}>Even $50/month is a great start</div>
+            </div>
+            <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(201,164,55,0.1)', border: '1px solid var(--nx-gold-200)' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--nx-gold-700)', marginBottom: 6 }}>Requirements to contribute</div>
+              <div style={{ fontSize: 12, color: 'var(--foreground)', lineHeight: 1.7 }}>
+                ✓ You must have earned income (job, freelance, babysitting)<br/>
+                ✓ Income below ~$146,000/year (not an issue for most teens)<br/>
+                ✓ Open an account at Fidelity, Charles Schwab, or Vanguard<br/>
+                ✓ Under 18? A parent opens a <strong>custodial Roth IRA</strong> for you<br/>
+              </div>
+            </div>
+            {income > 0 && (
+              <div style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--nx-pos-50)', border: '1px solid var(--nx-pos-200)' }}>
+                <div style={{ fontSize: 12, color: 'var(--nx-pos-700)' }}>
+                  💚 Based on your income, you can contribute up to{' '}
+                  <strong>{fmt(Math.min(iraMax, income))}</strong> to a Roth IRA this year.
                 </div>
-              ))}
-            </div>
-          )}
-          <div className="p-4 rounded-xl text-sm flex flex-col gap-2" style={{ background: 'var(--accent-light)', border: '1px solid rgba(91,106,240,0.2)' }}>
-            <div className="font-semibold" style={{ color: 'var(--accent)' }}>How it works — 3 steps</div>
-            <div style={{ color: 'var(--foreground-secondary)' }}>
-              <strong>1. Find a loser</strong> — Look for taxable positions where current price is below your cost basis.<br />
-              <strong>2. Sell &amp; replace</strong> — Sell it, then immediately buy a similar fund (e.g. sell SPY → buy IVV). Wait 30+ days before buying the original back.<br />
-              <strong>3. Claim the loss</strong> — Report on your taxes. Losses offset gains first, then up to $3,000 of ordinary income. Excess carries forward.<br />
-              <span className="text-xs mt-1 block" style={{ color: 'var(--muted)' }}>At your {(marginalRate * 100).toFixed(0)}% bracket: a $10,000 harvested loss saves ~<strong>{fmt(10000 * marginalRate)}</strong></span>
-            </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Where to file */}
+        {/* How to file */}
         <div className="card">
-          <h2 className="font-semibold mb-4">Where to File & Get Help</h2>
+          <h2 className="font-semibold mb-4">📁 How to File (For Free)</h2>
           <div className="flex flex-col gap-3">
             {[
-              { name: 'TurboTax', url: 'turbotax.intuit.com', desc: 'Best for most people. Step-by-step guidance, imports W-2s and 1099s automatically.', badge: 'Most Popular', color: 'var(--accent)' },
-              { name: 'H&R Block', url: 'hrblock.com', desc: 'Great online or in-person. Strong for complex situations like self-employment or rental income.', badge: 'In-Person Option', color: 'var(--green)' },
-              { name: 'FreeTaxUSA', url: 'freetaxusa.com', desc: 'Free federal filing, ~$15 state. Great value for straightforward returns.', badge: 'Best Value', color: 'var(--yellow)' },
-              { name: 'IRS Free File', url: 'irs.gov/freefile', desc: 'Completely free if income under $79,000. Powered by TurboTax or H&R Block depending on eligibility.', badge: 'Free', color: 'var(--mint-text)' },
-              { name: 'Find a CPA', url: 'cpaverify.org', desc: 'Best for self-employed, rental properties, stock options, or significant life changes. Worth the cost.', badge: 'Complex Situations', color: '#8b5cf6' },
+              { name: 'IRS Free File', url: 'https://www.irs.gov/filing/free-file-do-your-federal-taxes-for-free', desc: 'Free if income < $79K. Official IRS program, powered by major tax software.', badge: '🆓 Free', color: 'var(--nx-pos-600)' },
+              { name: 'Cash App Taxes', url: 'https://cash.app/taxes', desc: 'Completely free — federal AND state. Great for simple W-2 returns.', badge: '🆓 Free', color: 'var(--nx-pos-600)' },
+              { name: 'FreeTaxUSA', url: 'https://www.freetaxusa.com', desc: 'Free federal, ~$15 state. Simple interface, great for first-time filers.', badge: '💲 Low cost', color: 'var(--nx-warn-600)' },
+              { name: 'VITA Program', url: 'https://www.irs.gov/vita', desc: 'Free in-person tax prep from IRS-certified volunteers. Great for students.', badge: '🙋 In-Person', color: 'var(--nx-navy-600)' },
             ].map(s => (
-              <div key={s.name} className="p-3 rounded-xl" style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-semibold text-sm">{s.name}</span>
-                  <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(0,0,0,0.06)', color: s.color }}>{s.badge}</span>
+              <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                <div className="p-3 rounded-xl" style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>{s.name} ↗</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(0,0,0,0.05)', color: s.color }}>{s.badge}</span>
+                  </div>
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>{s.desc}</p>
                 </div>
-                <p className="text-xs" style={{ color: 'var(--foreground-secondary)' }}>{s.desc}</p>
-                <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{s.url}</p>
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* Key dates */}
+        <div className="card">
+          <h2 className="font-semibold mb-4">📅 Key Dates to Know</h2>
+          <div className="flex flex-col gap-3">
+            {[
+              { date: 'Jan 31', label: 'W-2 deadline', desc: 'Your employer must send your W-2 by this date', emoji: '📄' },
+              { date: 'Apr 15', label: 'Tax filing deadline', desc: 'File your return or request a 6-month extension', emoji: '🗂️' },
+              { date: 'Apr 15', label: 'Roth IRA contribution deadline', desc: 'Last day to contribute to your Roth IRA for the previous tax year', emoji: '🏦' },
+              { date: 'Oct 15', label: 'Extended return deadline', desc: 'If you filed for an extension, this is the final deadline', emoji: '⏳' },
+            ].map(e => (
+              <div key={e.date + e.label} style={{ display: 'flex', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--border)', alignItems: 'flex-start' }}>
+                <span style={{ fontSize: 20, flexShrink: 0 }}>{e.emoji}</span>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                    <span className="font-bold text-xs" style={{ color: 'var(--nx-gold-600)', minWidth: 48 }}>{e.date}</span>
+                    <span className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>{e.label}</span>
+                  </div>
+                  <p className="text-xs" style={{ color: 'var(--muted)', margin: 0 }}>{e.desc}</p>
+                </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Tax Timeline */}
+        {/* First job checklist */}
         <div className="card">
-          <h2 className="font-semibold mb-4">2025 Tax Calendar</h2>
-          <div className="flex flex-col gap-3">
+          <h2 className="font-semibold mb-2">✅ First Job Tax Checklist</h2>
+          <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>Starting your first job? Here&apos;s what you need to do.</p>
+          <div className="flex flex-col gap-2">
             {[
-              { date: 'Jan 15, 2025', label: 'Q4 2024 estimated tax due' },
-              { date: 'Apr 15, 2025', label: '2024 return due · Q1 estimated tax due · IRA contribution deadline' },
-              { date: 'Jun 16, 2025', label: 'Q2 estimated tax due' },
-              { date: 'Sep 15, 2025', label: 'Q3 estimated tax due' },
-              { date: 'Oct 15, 2025', label: 'Extended return deadline' },
-              { date: 'Dec 31, 2025', label: 'Last day for 401(k) contributions · TLH deadline' },
-            ].map(e => (
-              <div key={e.date} className="flex gap-3 text-sm py-2 border-b" style={{ borderColor: 'var(--border)' }}>
-                <span className="font-semibold text-xs whitespace-nowrap" style={{ color: 'var(--accent)', minWidth: 110 }}>{e.date}</span>
-                <span style={{ color: 'var(--foreground-secondary)' }}>{e.label}</span>
+              { text: 'Fill out your W-4 form (tells your employer how much to withhold)', tip: 'Claim 0 allowances to withhold more — avoids owing at tax time' },
+              { text: 'Get a Social Security card if you don\'t have one', tip: 'SSA.gov — free, takes a few weeks' },
+              { text: 'Save your pay stubs to verify your W-2 in January', tip: 'Take a photo on your phone, keep for 1 year' },
+              { text: 'Set aside ~25% of any freelance/side hustle income', tip: 'Freelance income has no withholding — you owe it yourself' },
+              { text: 'Open a Roth IRA once you have earned income', tip: 'Even $25/month is a great start' },
+              { text: 'File your return by April 15 — even if you don\'t owe', tip: 'You might get a refund from over-withheld taxes!' },
+            ].map((item, i) => (
+              <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 0', borderBottom: i < 5 ? '1px solid var(--border)' : 'none' }}>
+                <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--nx-pos-50)', border: '1px solid var(--nx-pos-200)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                  <span style={{ fontSize: 10, color: 'var(--nx-pos-700)', fontWeight: 700 }}>{i + 1}</span>
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--foreground)', lineHeight: 1.4, marginBottom: 2 }}>{item.text}</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>💡 {item.tip}</div>
+                </div>
               </div>
             ))}
           </div>
@@ -289,7 +421,7 @@ export default function TaxPage() {
       </div>
 
       <p className="text-xs mt-6 text-center" style={{ color: 'var(--muted)' }}>
-        Tax estimates use 2024 federal brackets. Does not include state tax, FICA, or AMT. Always consult a licensed CPA for your actual tax situation.
+        Tax estimates use 2024 federal brackets. Does not include state tax, FICA, or AMT. For educational purposes only — not tax advice.
       </p>
     </div>
   )

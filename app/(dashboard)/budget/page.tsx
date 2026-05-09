@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useUserData } from '@/lib/context/UserDataContext'
+import { useWorkspace } from '@/lib/context/WorkspaceContext'
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis,
   Tooltip, ResponsiveContainer, CartesianGrid, Legend
@@ -83,6 +84,7 @@ function PieLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }:
 
 export default function BudgetPage() {
   const { refresh } = useUserData()
+  const { activeWorkspaceId } = useWorkspace()
   const [categories, setCategories]     = useState<Category[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [editingBudget, setEditingBudget] = useState<string | null>(null)
@@ -106,13 +108,15 @@ export default function BudgetPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
+    const catsQ = supabase.from('budget_categories').select('*').eq('user_id', user.id).order('created_at')
+    const txnsQ = supabase.from('transactions').select('*').eq('user_id', user.id).gte('date', startOfMonth).order('date', { ascending: false })
     const [{ data: cats }, { data: txns }] = await Promise.all([
-      supabase.from('budget_categories').select('*').eq('user_id', user.id).order('created_at'),
-      supabase.from('transactions').select('*').eq('user_id', user.id).gte('date', startOfMonth).order('date', { ascending: false }),
+      activeWorkspaceId ? catsQ.eq('workspace_id', activeWorkspaceId) : catsQ.is('workspace_id', null),
+      activeWorkspaceId ? txnsQ.eq('workspace_id', activeWorkspaceId) : txnsQ.is('workspace_id', null),
     ])
     setCategories((cats ?? []).map(c => ({ ...c, bucket: c.bucket ?? (c.type === 'income' ? 'income' : 'variable') })))
     setTransactions(txns ?? [])
-  }, [])
+  }, [activeWorkspaceId])
 
   useEffect(() => { load() }, [load])
 
@@ -138,6 +142,7 @@ export default function BudgetPage() {
         const today = new Date().toISOString().split('T')[0]
         const { error } = await supabase.from('transactions').insert({
           user_id: user.id,
+          workspace_id: activeWorkspaceId ?? null,
           amount: p.amount,
           type: p.type,
           description: p.description || p.name,
@@ -206,7 +211,8 @@ export default function BudgetPage() {
     const supabase = createClient()
     const today = new Date().toISOString().split('T')[0]
     supabase.from('transactions').insert({
-      user_id: currentUserId, amount: p.amount, type: p.type,
+      user_id: currentUserId, workspace_id: activeWorkspaceId ?? null,
+      amount: p.amount, type: p.type,
       description: p.description || p.name, category_id: p.category_id || null, date: today,
     }).then(() => { markApplied(p.id); load(); refresh() })
   }
@@ -221,7 +227,7 @@ export default function BudgetPage() {
     await supabase.from('profiles').upsert({ id: user.id }, { onConflict: 'id', ignoreDuplicates: true })
 
     const { error } = await supabase.from('budget_categories').insert({
-      user_id: user.id, name,
+      user_id: user.id, workspace_id: activeWorkspaceId ?? null, name,
       type: bucket === 'income' ? 'income' : 'expense',
       color: BUCKET_COLORS[bucket] ?? '#64748b',
       monthly_budget: 0, bucket,
@@ -253,6 +259,7 @@ export default function BudgetPage() {
 
     const { error } = await supabase.from('transactions').insert({
       user_id: user.id,
+      workspace_id: activeWorkspaceId ?? null,
       amount: parseFloat(txForm.amount),
       type: txForm.type,
       description: txForm.description,

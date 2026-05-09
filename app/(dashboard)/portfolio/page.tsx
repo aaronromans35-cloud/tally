@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts'
 import { useUserData } from '@/lib/context/UserDataContext'
+import { useWorkspace } from '@/lib/context/WorkspaceContext'
 
 type Holding = { id: string; ticker: string; name: string; shares: number; avg_cost_basis: number; account_type: string; asset_class: string }
 type Quote = {
@@ -53,6 +54,7 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
 
 export default function PortfolioPage() {
   const { refresh } = useUserData()
+  const { activeWorkspaceId } = useWorkspace()
   const [holdings, setHoldings]         = useState<Holding[]>([])
   const [quotes, setQuotes]             = useState<Record<string, Quote>>({})
   const [activeTicker, setActiveTicker] = useState<string | null>(null)
@@ -67,7 +69,8 @@ export default function PortfolioPage() {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const { data, error: err } = await supabase.from('holdings').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+    const q = supabase.from('holdings').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+    const { data, error: err } = await (activeWorkspaceId ? q.eq('workspace_id', activeWorkspaceId) : q.is('workspace_id', null))
     if (err) console.error('Load error:', err)
     const rows = data ?? []
     setHoldings(rows)
@@ -75,7 +78,7 @@ export default function PortfolioPage() {
       if (!activeTicker) setActiveTicker(rows[0].ticker)
       fetchQuotes(rows.map(h => h.ticker), range)
     }
-  }, []) // eslint-disable-line
+  }, [activeWorkspaceId]) // eslint-disable-line
 
   async function fetchQuotes(tickers: string[], r: Range) {
     setQuotesLoading(true)
@@ -111,6 +114,7 @@ export default function PortfolioPage() {
 
     const { error: insertError } = await supabase.from('holdings').insert({
       user_id: user.id,
+      workspace_id: activeWorkspaceId ?? null,
       ticker: form.ticker.toUpperCase().trim(),
       name: form.name.trim() || form.ticker.toUpperCase().trim(),
       shares: parseFloat(form.shares),

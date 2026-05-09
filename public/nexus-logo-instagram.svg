@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" width="1080" height="1080">
+  <!-- Navy background matching app -->
+  <rect width="1080" height="1080" fill="#0a1628"/>
+
+  <!-- Cream square — scaled up version of the sidebar logo -->
+  <rect x="290" y="290" width="500" height="500" rx="80" fill="#faf8f2"/>
+
+  <!-- Bold N in navy — exact app style -->
+  <text x="540" y="680"
+    font-family="'Arial Black', Georgia, serif"
+    font-weight="900"
+    font-size="420"
+    fill="#0a1628"
+    text-anchor="middle">N</text>
+</svg>

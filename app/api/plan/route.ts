@@ -1,21 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import fs from 'fs'
-import path from 'path'
 import { aiLimiter, getIP } from '@/lib/ratelimit'
-
-function getAnthropicKey(): string {
-  // Try process.env first
-  if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY
-  // Fallback: read .env.local directly (Turbopack sometimes doesn't inline server-only vars)
-  try {
-    const envPath = path.join(process.cwd(), '.env.local')
-    const content = fs.readFileSync(envPath, 'utf8')
-    const match = content.match(/^ANTHROPIC_API_KEY=(.+)$/m)
-    if (match) return match[1].trim()
-  } catch { /* file not found */ }
-  return ''
-}
 
 const SYSTEM_PROMPT = `You are Nexus's AI financial guide for teenagers and young adults (ages 13-25). You explain money in plain, relatable language — no jargon, no condescension. You meet users where they are: first jobs, allowance, side hustles, saving for a car or college, and learning to invest for the first time.
 
@@ -85,8 +70,8 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const apiKey = getAnthropicKey()
-    if (!apiKey) return NextResponse.json({ error: 'ANTHROPIC_API_KEY not set in .env.local' }, { status: 500 })
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (!apiKey) return NextResponse.json({ error: 'Server misconfiguration: missing API key' }, { status: 500 })
     const client = new Anthropic({ apiKey })
 
     const body = await req.json()

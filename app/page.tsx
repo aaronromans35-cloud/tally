@@ -66,7 +66,7 @@ export default function LandingPage() {
           {[
             { label: 'Features', href: '#features' },
             { label: 'For Educators', href: '#educators' },
-            { label: 'Blog', href: '/blog' },
+            { label: 'Pricing', href: '/pricing' },
           ].map(l => (
             <Link key={l.label} href={l.href} style={{ fontSize: 14, color: 'var(--nx-ink-500)', fontWeight: 500, textDecoration: 'none' }}>
               {l.label}

@@ -16,7 +16,7 @@ function NavBar() {
         <span style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 500, letterSpacing: '-0.04em', color: 'var(--nx-navy-900)' }}>Nexus</span>
       </Link>
       <div style={{ display: 'flex', gap: 36 }}>
-        {[{ label: 'Features', href: '/#features' }, { label: 'Pricing', href: '/pricing' }, { label: 'About', href: '/about' }, { label: 'Blog', href: '/blog' }].map(l => (
+        {[{ label: 'Features', href: '/#features' }, { label: 'Pricing', href: '/pricing' }, { label: 'About', href: '/about' }].map(l => (
           <Link key={l.label} href={l.href} style={{ fontSize: 14, color: 'var(--nx-ink-500)', fontWeight: 500, textDecoration: 'none' }}>{l.label}</Link>
         ))}
       </div>

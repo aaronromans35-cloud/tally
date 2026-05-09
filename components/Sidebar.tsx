@@ -184,6 +184,7 @@ const NAV_STUDENT = [
   { href: '/tax',          label: 'Tax 101',           icon: <IconLandmark />,   tour: undefined },
   { href: '/goals',        label: 'Goals',             icon: <IconTarget />,     tour: 'tour-goals' },
   { href: '/class',        label: 'My Class',          icon: <IconUsers />,      tour: undefined },
+  { href: '/simulation',   label: 'Stock Sim',         icon: <IconTrending />,   tour: undefined },
   { href: '/transactions', label: 'Transactions',      icon: <IconList />,       tour: undefined },
   { href: '/profile',      label: 'Settings',          icon: <IconSettings />,   tour: undefined },
 ]
@@ -192,6 +193,7 @@ const NAV_TEACHER = [
   { href: '/teacher',      label: 'Teacher Dashboard', icon: <IconUsers />,      tour: undefined },
   { href: '/budget',       label: 'Budget',            icon: <IconWallet />,     tour: 'tour-budget' },
   { href: '/portfolio',    label: 'Portfolio',         icon: <IconTrending />,   tour: undefined },
+  { href: '/simulation',   label: 'Stock Sim',         icon: <IconTrending />,   tour: undefined },
   { href: '/plan',         label: 'AI Plan',           icon: <IconSparkles />,   tour: 'tour-plan' },
   { href: '/compound',     label: 'Compound Calc',     icon: <IconCompound />,   tour: 'tour-compound' },
   { href: '/debt',         label: 'Debt Payoff',       icon: <IconCreditCard />, tour: undefined },
@@ -204,6 +206,7 @@ const NAV_PERSONAL = [
   { href: '/dashboard',    label: 'Overview',          icon: <IconHome />,       tour: undefined },
   { href: '/budget',       label: 'Budget',            icon: <IconWallet />,     tour: 'tour-budget' },
   { href: '/portfolio',    label: 'Portfolio',         icon: <IconTrending />,   tour: undefined },
+  { href: '/simulation',   label: 'Stock Sim',         icon: <IconTrending />,   tour: undefined },
   { href: '/plan',         label: 'AI Plan',           icon: <IconSparkles />,   tour: 'tour-plan' },
   { href: '/compound',     label: 'Compound Calc',     icon: <IconCompound />,   tour: 'tour-compound' },
   { href: '/debt',         label: 'Debt Payoff',       icon: <IconCreditCard />, tour: undefined },

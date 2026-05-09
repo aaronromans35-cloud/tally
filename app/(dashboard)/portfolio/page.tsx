@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts'
 import { useUserData } from '@/lib/context/UserDataContext'
 import { useWorkspace } from '@/lib/context/WorkspaceContext'
+import { StockResearcher } from '@/components/StockResearcher'
 
 type Holding = { id: string; ticker: string; name: string; shares: number; avg_cost_basis: number; account_type: string; asset_class: string }
 type Quote = {
@@ -550,6 +551,9 @@ export default function PortfolioPage() {
           </div>
         </div>
       )}
+
+      {/* Stock Researcher */}
+      <StockResearcher />
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { aiLimiter, getIP } from '@/lib/ratelimit'
+import { parseBody, sanitizeStockResearchInput } from '@/lib/validate'
 
 const client = new Anthropic()
 
@@ -15,11 +16,18 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const { ticker, name, price, change, changePct, high52, low52, marketCap, volume, history } = await req.json()
+  // Parse and size-check body (max 16KB)
+  const { data, error: parseError } = await parseBody(req, 16_000)
+  if (parseError) return NextResponse.json({ error: parseError }, { status: 400 })
 
-  const historyStr = history?.slice(-30).map((h: { date: string; price: number }) =>
-    `${h.date}: $${h.price}`
-  ).join(', ') ?? 'No history available'
+  const input = sanitizeStockResearchInput(data)
+  if (!input) return NextResponse.json({ error: 'Invalid or malformed input' }, { status: 400 })
+
+  const { ticker, name, price, change, changePct, high52, low52, marketCap, volume, history } = input
+
+  const historyStr = history.slice(-30).map((h) =>
+    `${h!.date}: $${h!.price}`
+  ).join(', ') || 'No history available'
 
   const prompt = `You are a financial educator helping a high school student understand a stock. Be clear, simple, and educational — avoid jargon. Keep it under 200 words.
 

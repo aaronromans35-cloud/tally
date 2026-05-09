@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { aiLimiter, getIP } from '@/lib/ratelimit'
+import { parseBody, sanitizePlanInput } from '@/lib/validate'
 
 const SYSTEM_PROMPT = `You are Nexus's AI financial guide for teenagers and young adults (ages 13-25). You explain money in plain, relatable language — no jargon, no condescension. You meet users where they are: first jobs, allowance, side hustles, saving for a car or college, and learning to invest for the first time.
 
@@ -74,8 +75,14 @@ export async function POST(req: NextRequest) {
     if (!apiKey) return NextResponse.json({ error: 'Server misconfiguration: missing API key' }, { status: 500 })
     const client = new Anthropic({ apiKey })
 
-    const body = await req.json()
-    const { profile, goals, debts, holdings, budget, extraContext } = body
+    // Parse and size-check body (max 32KB for plan — has holdings/goals arrays)
+    const { data, error: parseError } = await parseBody(req, 32_000)
+    if (parseError) return NextResponse.json({ error: parseError }, { status: 400 })
+
+    const sanitized = sanitizePlanInput(data)
+    if (!sanitized) return NextResponse.json({ error: 'Invalid or malformed request body' }, { status: 400 })
+
+    const { profile, goals, debts, holdings, budget, extraContext } = sanitized
 
     const age = profile?.age ?? 30
     const income = profile?.annual_income ?? 0

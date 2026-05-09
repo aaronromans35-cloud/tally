@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isValidTicker, sanitizeString } from '@/lib/validate'
+
+const MAX_TICKERS = 5
 
 export async function GET(req: NextRequest) {
-  const tickers = req.nextUrl.searchParams.get('tickers')?.split(',') ?? []
+  const raw = req.nextUrl.searchParams.get('tickers') ?? ''
+
+  // Sanitize and validate each ticker
+  const tickers = sanitizeString(raw, 60)
+    .split(',')
+    .map(t => t.trim().toUpperCase())
+    .filter(t => isValidTicker(t))
+    .slice(0, MAX_TICKERS)
+
   if (!tickers.length) return NextResponse.json({})
 
   const apiKey = process.env.ALPHA_VANTAGE_API_KEY
@@ -16,11 +27,10 @@ export async function GET(req: NextRequest) {
 
   const results: Record<string, { price: number; change: number; changePct: number }> = {}
 
-  // Alpha Vantage free tier: 25 requests/day — batch carefully
-  for (const ticker of tickers.slice(0, 5)) {
+  for (const ticker of tickers) {
     try {
-      const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${ticker}&apikey=${apiKey}`
-      const res = await fetch(url, { next: { revalidate: 300 } }) // cache 5 min
+      const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(ticker)}&apikey=${apiKey}`
+      const res = await fetch(url, { next: { revalidate: 300 } })
       const data = await res.json()
       const q = data['Global Quote']
       if (q) {

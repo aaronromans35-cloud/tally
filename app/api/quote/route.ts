@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { quoteLimiter, getIP } from '@/lib/ratelimit'
+import { validateTicker } from '@/lib/validate'
 
 const RANGE_MAP: Record<string, { interval: string; range: string }> = {
   '1W': { interval: '1d',  range: '5d' },
@@ -57,9 +58,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Too many requests. Please slow down.' }, { status: 429 })
   }
 
-  const ticker = req.nextUrl.searchParams.get('ticker')
-  const rangeKey = req.nextUrl.searchParams.get('range') ?? '1M'
-  if (!ticker) return NextResponse.json({ error: 'No ticker' }, { status: 400 })
+  const { ticker, error: tickerError } = validateTicker(req.nextUrl.searchParams.get('ticker'))
+  if (tickerError) return NextResponse.json({ error: tickerError }, { status: 400 })
+
+  const VALID_RANGES = ['1W', '1M', '3M', '6M', '1Y']
+  const rawRange = req.nextUrl.searchParams.get('range') ?? '1M'
+  const rangeKey = VALID_RANGES.includes(rawRange) ? rawRange : '1M'
 
   const { interval, range } = RANGE_MAP[rangeKey] ?? RANGE_MAP['1M']
 

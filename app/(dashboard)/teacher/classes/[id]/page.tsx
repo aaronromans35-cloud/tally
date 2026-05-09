@@ -44,17 +44,69 @@ export default function ClassDetailPage() {
   const [cls, setCls] = useState<ClassRow | null>(null)
   const [students, setStudents] = useState<Student[]>([])
   const [assignments, setAssignments] = useState<Assignment[]>([])
-  const [activeTab, setActiveTab] = useState<'leaderboard' | 'assignments'>('leaderboard')
+  const [activeTab, setActiveTab] = useState<'leaderboard' | 'assignments' | 'messages'>('leaderboard')
   const [showAssignForm, setShowAssignForm] = useState(false)
   const [aForm, setAForm] = useState({ title: '', description: '', module: 'budgeting', due_date: '', points: '10' })
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
 
+  // Messages
+  type Message = { id: string; content: string; pinned: boolean; created_at: string; author_id: string }
+  const [messages, setMessages] = useState<Message[]>([])
+  const [msgText, setMsgText] = useState('')
+  const [msgSaving, setMsgSaving] = useState(false)
+  const [msgError, setMsgError] = useState('')
+  const [teacherId, setTeacherId] = useState<string | null>(null)
+
+  async function loadMessages() {
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('class_messages')
+      .select('*')
+      .eq('class_id', classId)
+      .order('created_at', { ascending: false })
+      .limit(50)
+    setMessages(data ?? [])
+  }
+
+  async function postMessage(e: React.FormEvent) {
+    e.preventDefault()
+    const text = msgText.trim().slice(0, 2000)
+    if (!text) return
+    setMsgSaving(true)
+    setMsgError('')
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setMsgSaving(false); return }
+    const { error } = await supabase.from('class_messages').insert({
+      class_id: classId,
+      author_id: user.id,
+      content: text,
+    })
+    setMsgSaving(false)
+    if (error) { setMsgError(error.message); return }
+    setMsgText('')
+    await loadMessages()
+  }
+
+  async function deleteMessage(id: string) {
+    const supabase = createClient()
+    await supabase.from('class_messages').delete().eq('id', id)
+    await loadMessages()
+  }
+
+  async function togglePin(msg: Message) {
+    const supabase = createClient()
+    await supabase.from('class_messages').update({ pinned: !msg.pinned }).eq('id', msg.id)
+    await loadMessages()
+  }
+
   async function load() {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
+    setTeacherId(user.id)
 
     // Load class
     const { data: classData } = await supabase.from('classes').select('*').eq('id', classId).single()
@@ -115,11 +167,11 @@ export default function ClassDetailPage() {
     }
 
     setLoading(false)
+    await loadMessages()
   }
 
   useEffect(() => {
     load()
-    // Store classId so student profile page can use it for back navigation
     if (classId) sessionStorage.setItem('teacher-class-id', classId)
   }, [classId])
 
@@ -211,15 +263,19 @@ export default function ClassDetailPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'var(--background)', border: '1px solid var(--border)', width: 'fit-content' }}>
-        {(['leaderboard', 'assignments'] as const).map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)}
-            className="px-5 py-2 rounded-lg text-sm font-medium capitalize transition-all"
+        {([
+          { id: 'leaderboard', label: '🏆 Leaderboard' },
+          { id: 'assignments', label: '📋 Assignments' },
+          { id: 'messages',    label: `💬 Messages${messages.length > 0 ? ` (${messages.length})` : ''}` },
+        ] as const).map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            className="px-5 py-2 rounded-lg text-sm font-medium transition-all"
             style={{
-              background: activeTab === tab ? 'var(--surface)' : 'transparent',
-              color: activeTab === tab ? 'var(--foreground)' : 'var(--muted)',
-              boxShadow: activeTab === tab ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              background: activeTab === tab.id ? 'var(--surface)' : 'transparent',
+              color: activeTab === tab.id ? 'var(--foreground)' : 'var(--muted)',
+              boxShadow: activeTab === tab.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
             }}>
-            {tab === 'leaderboard' ? '🏆 Leaderboard' : '📋 Assignments'}
+            {tab.label}
           </button>
         ))}
       </div>
@@ -390,6 +446,83 @@ export default function ClassDetailPage() {
                   </div>
                 )
               })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── MESSAGES TAB ── */}
+      {activeTab === 'messages' && (
+        <div className="flex flex-col gap-4">
+          {/* Post form */}
+          <div className="card">
+            <div className="font-semibold mb-3">Post a message to your class</div>
+            <form onSubmit={postMessage} className="flex flex-col gap-3">
+              <textarea
+                value={msgText}
+                onChange={e => setMsgText(e.target.value.slice(0, 2000))}
+                placeholder="Write an announcement, reminder, or tip for your students…"
+                rows={3}
+                style={{
+                  width: '100%', padding: '10px 12px', borderRadius: 8, resize: 'vertical',
+                  border: '1px solid var(--border)', background: 'var(--background)',
+                  color: 'var(--foreground)', fontSize: 14, fontFamily: 'inherit',
+                }}
+              />
+              <div className="flex items-center justify-between">
+                <span className="text-xs" style={{ color: 'var(--muted)' }}>{msgText.length}/2000</span>
+                <div className="flex gap-2 items-center">
+                  {msgError && <span className="text-xs" style={{ color: 'var(--red)' }}>{msgError}</span>}
+                  <button type="submit" className="btn-primary" disabled={msgSaving || !msgText.trim()}
+                    style={{ padding: '8px 20px', fontSize: 13 }}>
+                    {msgSaving ? 'Posting…' : 'Post Message'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          {/* Messages list */}
+          {messages.length === 0 ? (
+            <div className="card text-center py-12">
+              <div className="text-4xl mb-3">💬</div>
+              <h3 className="font-semibold mb-2">No messages yet</h3>
+              <p className="text-sm" style={{ color: 'var(--muted)' }}>Post announcements, reminders, or tips above — your students will see them in their class view.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {/* Pinned first */}
+              {[...messages].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)).map(msg => (
+                <div key={msg.id} className="card flex flex-col gap-2"
+                  style={msg.pinned ? { border: '1px solid var(--accent)', background: 'rgba(91,106,240,0.04)' } : {}}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {msg.pinned && (
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded"
+                          style={{ background: 'rgba(91,106,240,0.15)', color: 'var(--accent)' }}>📌 Pinned</span>
+                      )}
+                      <span className="text-xs" style={{ color: 'var(--muted)' }}>
+                        {new Date(msg.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button onClick={() => togglePin(msg)}
+                        className="text-xs px-2 py-1 rounded"
+                        style={{ background: 'var(--background)', border: '1px solid var(--border)', color: 'var(--muted)', cursor: 'pointer' }}>
+                        {msg.pinned ? 'Unpin' : '📌 Pin'}
+                      </button>
+                      <button onClick={() => deleteMessage(msg.id)}
+                        className="text-xs px-2 py-1 rounded"
+                        style={{ background: 'var(--background)', border: '1px solid var(--border)', color: 'var(--red)', cursor: 'pointer' }}>
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-sm" style={{ color: 'var(--foreground)', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    {msg.content}
+                  </p>
+                </div>
+              ))}
             </div>
           )}
         </div>

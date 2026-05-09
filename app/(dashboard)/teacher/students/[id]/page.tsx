@@ -8,7 +8,8 @@ type Profile = { id: string; full_name: string; age: number | null; account_type
 type Goal = { id: string; name: string; type: string; target_amount: number; current_amount: number; priority: number }
 type Debt = { id: string; name: string; balance: number; interest_rate: number }
 type Holding = { id: string; ticker: string; shares: number; avg_cost_basis: number }
-type Transaction = { id: string; description: string; amount: number; type: string; category: string; date: string }
+type Transaction = { id: string; description: string; amount: number; type: string; category: string; date: string; category_id: string | null }
+type BudgetCategory = { id: string; name: string; type: string; color: string; monthly_budget: number; bucket: string }
 type Assignment = { id: string; title: string; module: string; points: number; completed: boolean; due_date: string | null; description: string }
 type StreakData = { current_streak: number; longest_streak: number }
 type AchievementData = { achievement_key: string }
@@ -53,6 +54,7 @@ export default function StudentProfilePage() {
   const [debts, setDebts] = useState<Debt[]>([])
   const [holdings, setHoldings] = useState<Holding[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [budgetCategories, setBudgetCategories] = useState<BudgetCategory[]>([])
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [streak, setStreak] = useState<StreakData | null>(null)
   const [achievements, setAchievements] = useState<AchievementData[]>([])
@@ -68,6 +70,7 @@ export default function StudentProfilePage() {
         { data: debtData },
         { data: holdingData },
         { data: txnData },
+        { data: catData },
         { data: streakData },
         { data: achieveData },
       ] = await Promise.all([
@@ -75,7 +78,8 @@ export default function StudentProfilePage() {
         supabase.from('goals').select('*').eq('user_id', studentId).is('workspace_id', null).order('priority'),
         supabase.from('debts').select('*').eq('user_id', studentId).is('workspace_id', null),
         supabase.from('holdings').select('*').eq('user_id', studentId).is('workspace_id', null),
-        supabase.from('transactions').select('*').eq('user_id', studentId).is('workspace_id', null).order('date', { ascending: false }).limit(50),
+        supabase.from('transactions').select('*').eq('user_id', studentId).is('workspace_id', null).order('date', { ascending: false }).limit(100),
+        supabase.from('budget_categories').select('*').eq('user_id', studentId).is('workspace_id', null),
         supabase.from('streaks').select('*').eq('user_id', studentId).single(),
         supabase.from('achievements').select('achievement_key').eq('user_id', studentId),
       ])
@@ -85,6 +89,7 @@ export default function StudentProfilePage() {
       setDebts(debtData ?? [])
       setHoldings(holdingData ?? [])
       setTransactions(txnData ?? [])
+      setBudgetCategories(catData ?? [])
       setStreak(streakData)
       setAchievements(achieveData ?? [])
 
@@ -459,54 +464,176 @@ export default function StudentProfilePage() {
       )}
 
       {/* ── BUDGET TAB ── */}
-      {activeTab === 'budget' && (
-        <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { label: 'Income This Month',   value: fmt(monthIncome),                      color: 'var(--green)' },
-              { label: 'Spent This Month',    value: fmt(monthExpenses),                    color: 'var(--red)' },
-              { label: 'Savings Rate',        value: `${savingsRate.toFixed(0)}%`,           color: savingsRate >= 20 ? 'var(--green)' : savingsRate >= 10 ? 'var(--yellow)' : 'var(--red)' },
-            ].map(s => (
-              <div key={s.label} className="card text-center">
-                <div className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</div>
-                <div className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
+      {activeTab === 'budget' && (() => {
+        // Build category spending map for this month
+        const catMap: Record<string, number> = {}
+        thisMonth.filter(t => t.type === 'expense').forEach(t => {
+          const key = t.category_id ?? t.category ?? 'Uncategorized'
+          catMap[key] = (catMap[key] ?? 0) + t.amount
+        })
 
-          {transactions.length === 0 ? (
-            <div className="card text-center py-12">
-              <div className="text-4xl mb-3">💰</div>
-              <h3 className="font-semibold mb-2">No transactions yet</h3>
-              <p className="text-sm" style={{ color: 'var(--muted)' }}>This student hasn't logged any transactions.</p>
+        // Merge with budget categories
+        const catRows = budgetCategories
+          .filter(c => c.type === 'expense')
+          .map(c => ({
+            id: c.id,
+            name: c.name,
+            color: c.color,
+            budget: c.monthly_budget,
+            spent: catMap[c.id] ?? 0,
+            bucket: c.bucket,
+          }))
+          .sort((a, b) => b.spent - a.spent)
+
+        // Uncategorized spending
+        const knownIds = new Set(budgetCategories.map(c => c.id))
+        const uncatSpent = thisMonth
+          .filter(t => t.type === 'expense' && (!t.category_id || !knownIds.has(t.category_id)))
+          .reduce((s, t) => s + t.amount, 0)
+
+        // Last 3 months spending totals
+        const monthlyTotals = [-2, -1, 0].map(offset => {
+          const d = new Date()
+          d.setMonth(d.getMonth() + offset)
+          const label = d.toLocaleDateString('en-US', { month: 'short' })
+          const start = new Date(d.getFullYear(), d.getMonth(), 1)
+          const end = new Date(d.getFullYear(), d.getMonth() + 1, 0)
+          const income = transactions.filter(t => t.type === 'income' && new Date(t.date) >= start && new Date(t.date) <= end).reduce((s, t) => s + t.amount, 0)
+          const expenses = transactions.filter(t => t.type === 'expense' && new Date(t.date) >= start && new Date(t.date) <= end).reduce((s, t) => s + t.amount, 0)
+          return { label, income, expenses, net: income - expenses }
+        })
+
+        const totalBudgeted = catRows.reduce((s, c) => s + c.budget, 0)
+
+        return (
+          <div className="flex flex-col gap-4">
+            {/* Top stats */}
+            <div className="grid grid-cols-4 gap-3">
+              {[
+                { label: 'Income This Month', value: fmt(monthIncome), color: 'var(--green)' },
+                { label: 'Spent This Month',  value: fmt(monthExpenses), color: 'var(--red)' },
+                { label: 'Budgeted',          value: fmt(totalBudgeted), color: 'var(--accent)' },
+                { label: 'Savings Rate',      value: `${savingsRate.toFixed(0)}%`, color: savingsRate >= 20 ? 'var(--green)' : savingsRate >= 10 ? 'var(--yellow)' : 'var(--red)' },
+              ].map(s => (
+                <div key={s.label} className="card text-center py-4">
+                  <div className="text-xl font-bold" style={{ color: s.color }}>{s.value}</div>
+                  <div className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{s.label}</div>
+                </div>
+              ))}
             </div>
-          ) : (
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <div className="px-5 py-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
-                <span className="font-semibold">Recent Transactions</span>
-                <span className="text-xs" style={{ color: 'var(--muted)' }}>Last 50</span>
-              </div>
-              <div className="flex flex-col divide-y" style={{ borderColor: 'var(--border)' }}>
-                {transactions.map(t => (
-                  <div key={t.id} className="flex items-center gap-3 px-5 py-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate">{t.description}</div>
-                      <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--muted)' }}>
-                        <span>{t.category}</span>
-                        <span>·</span>
-                        <span>{new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+
+            {/* 3-month trend */}
+            <div className="card">
+              <div className="font-semibold mb-4 text-sm">3-Month Trend</div>
+              <div className="flex gap-4">
+                {monthlyTotals.map(m => (
+                  <div key={m.label} className="flex-1 flex flex-col gap-2">
+                    <div className="text-xs font-semibold text-center" style={{ color: 'var(--muted)' }}>{m.label}</div>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex justify-between text-xs">
+                        <span style={{ color: 'var(--green)' }}>In</span>
+                        <span style={{ color: 'var(--green)', fontWeight: 600 }}>{fmt(m.income)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span style={{ color: 'var(--red)' }}>Out</span>
+                        <span style={{ color: 'var(--red)', fontWeight: 600 }}>{fmt(m.expenses)}</span>
+                      </div>
+                      <div className="h-px my-1" style={{ background: 'var(--border)' }} />
+                      <div className="flex justify-between text-xs font-semibold">
+                        <span>Net</span>
+                        <span style={{ color: m.net >= 0 ? 'var(--green)' : 'var(--red)' }}>{fmt(m.net)}</span>
                       </div>
                     </div>
-                    <div className="font-semibold text-sm" style={{ color: t.type === 'income' ? 'var(--green)' : 'var(--red)' }}>
-                      {t.type === 'income' ? '+' : '-'}{fmtDec(t.amount)}
+                    {/* Bar visualization */}
+                    <div className="relative h-16 flex items-end gap-1 mt-2">
+                      <div className="flex-1 rounded-t" style={{ background: 'var(--green)', opacity: 0.8, height: m.income > 0 ? `${Math.min(100, (m.income / Math.max(m.income, m.expenses)) * 100)}%` : '4px' }} />
+                      <div className="flex-1 rounded-t" style={{ background: 'var(--red)', opacity: 0.8, height: m.expenses > 0 ? `${Math.min(100, (m.expenses / Math.max(m.income, m.expenses)) * 100)}%` : '4px' }} />
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-          )}
-        </div>
-      )}
+
+            {/* Category breakdown */}
+            {catRows.length > 0 && (
+              <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                <div className="px-5 py-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
+                  <span className="font-semibold">Spending by Category</span>
+                  <span className="text-xs" style={{ color: 'var(--muted)' }}>This month vs budget</span>
+                </div>
+                <div className="flex flex-col divide-y" style={{ borderColor: 'var(--border)' }}>
+                  {catRows.map(c => {
+                    const pct = c.budget > 0 ? Math.min(100, (c.spent / c.budget) * 100) : 0
+                    const over = c.budget > 0 && c.spent > c.budget
+                    return (
+                      <div key={c.id} className="px-5 py-3 flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: c.color || '#64748b' }} />
+                            <span className="text-sm font-medium">{c.name}</span>
+                            {over && <span className="text-xs px-1.5 py-0.5 rounded font-semibold" style={{ background: 'var(--neg-50)', color: 'var(--red)' }}>Over budget</span>}
+                          </div>
+                          <div className="text-sm text-right">
+                            <span className="font-semibold" style={{ color: over ? 'var(--red)' : 'var(--foreground)' }}>{fmtDec(c.spent)}</span>
+                            {c.budget > 0 && <span style={{ color: 'var(--muted)' }}> / {fmt(c.budget)}</span>}
+                          </div>
+                        </div>
+                        {c.budget > 0 && (
+                          <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--card-border)' }}>
+                            <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: over ? 'var(--red)' : c.color || 'var(--accent)' }} />
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                  {uncatSpent > 0 && (
+                    <div className="px-5 py-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: '#94a3b8' }} />
+                        <span className="text-sm" style={{ color: 'var(--muted)' }}>Uncategorized</span>
+                      </div>
+                      <span className="text-sm font-semibold">{fmtDec(uncatSpent)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* All transactions */}
+            {transactions.length === 0 ? (
+              <div className="card text-center py-12">
+                <div className="text-4xl mb-3">💰</div>
+                <h3 className="font-semibold mb-2">No transactions yet</h3>
+                <p className="text-sm" style={{ color: 'var(--muted)' }}>This student hasn't logged any transactions.</p>
+              </div>
+            ) : (
+              <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                <div className="px-5 py-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
+                  <span className="font-semibold">All Transactions</span>
+                  <span className="text-xs" style={{ color: 'var(--muted)' }}>Last 100</span>
+                </div>
+                <div className="flex flex-col divide-y" style={{ borderColor: 'var(--border)' }}>
+                  {transactions.map(t => (
+                    <div key={t.id} className="flex items-center gap-3 px-5 py-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">{t.description}</div>
+                        <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--muted)' }}>
+                          <span>{t.category}</span>
+                          <span>·</span>
+                          <span>{new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                        </div>
+                      </div>
+                      <div className="font-semibold text-sm" style={{ color: t.type === 'income' ? 'var(--green)' : 'var(--red)' }}>
+                        {t.type === 'income' ? '+' : '-'}{fmtDec(t.amount)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       {/* ── ASSIGNMENTS TAB ── */}
       {activeTab === 'assignments' && (

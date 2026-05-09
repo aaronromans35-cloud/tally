@@ -1,4 +1,5 @@
 'use client'
+export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -116,13 +117,20 @@ export default function ClassDetailPage() {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [classId])
+  useEffect(() => {
+    load()
+    // Store classId so student profile page can use it for back navigation
+    if (classId) sessionStorage.setItem('teacher-class-id', classId)
+  }, [classId])
+
+  const [assignError, setAssignError] = useState('')
 
   async function createAssignment(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
+    setAssignError('')
     const supabase = createClient()
-    await supabase.from('assignments').insert({
+    const { error } = await supabase.from('assignments').insert({
       class_id: classId,
       title: aForm.title.trim(),
       description: aForm.description.trim() || null,
@@ -130,10 +138,14 @@ export default function ClassDetailPage() {
       due_date: aForm.due_date || null,
       points: parseInt(aForm.points) || 10,
     })
+    setSaving(false)
+    if (error) {
+      setAssignError(error.message)
+      return
+    }
     setAForm({ title: '', description: '', module: 'budgeting', due_date: '', points: '10' })
     setShowAssignForm(false)
-    setSaving(false)
-    load()
+    await load()
   }
 
   async function deleteAssignment(id: string) {
@@ -231,7 +243,9 @@ export default function ClassDetailPage() {
                 const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null
                 const color = healthColor(s.score)
                 return (
-                  <div key={s.id} className="flex items-center gap-4 px-5 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
+                  <div key={s.id} className="flex items-center gap-4 px-5 py-4 border-b cursor-pointer transition-colors"
+                    style={{ borderColor: 'var(--border)' }}
+                    onClick={() => router.push(`/teacher/students/${s.id}`)}>
                     {/* Rank */}
                     <div className="w-8 text-center font-bold" style={{ color: medal ? undefined : 'var(--muted)', fontSize: medal ? 20 : 14 }}>
                       {medal ?? `#${i + 1}`}
@@ -254,6 +268,8 @@ export default function ClassDetailPage() {
                       <div className="text-lg font-bold" style={{ color }}>{s.score}%</div>
                       <div className="text-xs" style={{ color: 'var(--muted)' }}>health score</div>
                     </div>
+                    {/* View arrow */}
+                    <span className="text-xs hidden md:block" style={{ color: 'var(--muted)' }}>View →</span>
                     {/* Score bar */}
                     <div className="w-24 hidden md:block">
                       <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'var(--card-border)' }}>
@@ -282,6 +298,11 @@ export default function ClassDetailPage() {
             <div className="card max-w-lg">
               <h3 className="font-semibold mb-4">New Assignment</h3>
               <form onSubmit={createAssignment} className="flex flex-col gap-4">
+                {assignError && (
+                  <div className="px-3 py-2 rounded-lg text-sm" style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--red)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                    {assignError}
+                  </div>
+                )}
                 <div>
                   <label className="label">Title</label>
                   <input className="input" required value={aForm.title} onChange={e => setAForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Build your first budget" />

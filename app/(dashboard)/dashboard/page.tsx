@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useUserData } from '@/lib/context/UserDataContext'
@@ -457,20 +457,22 @@ function AddWidgetPanel({ layout, onAdd, onClose }: { layout: WidgetId[], onAdd:
 }
 
 // ── Main Dashboard ────────────────────────────────────────────────
-export default function DashboardPage() {
-  const router = useRouter()
+function TourStarter({ onStart }: { onStart: () => void }) {
   const searchParams = useSearchParams()
-  const { profile, budgetSummary, totalDebt, portfolioValue, loading } = useUserData()
-  const [showTour, setShowTour] = useState(false)
-
+  const router = useRouter()
   useEffect(() => {
     if (searchParams.get('tour') === '1') {
-      // Wait for layout to paint before starting tour
-      setTimeout(() => setShowTour(true), 800)
-      // Clean URL
+      setTimeout(onStart, 800)
       router.replace('/dashboard')
     }
-  }, [searchParams, router])
+  }, [searchParams, router, onStart])
+  return null
+}
+
+export default function DashboardPage() {
+  const router = useRouter()
+  const { profile, budgetSummary, totalDebt, portfolioValue, loading } = useUserData()
+  const [showTour, setShowTour] = useState(false)
   const [recentTxns, setRecentTxns] = useState<Transaction[]>([])
   const [goals, setGoals]           = useState<Goal[]>([])
   const [debts, setDebts]           = useState<Debt[]>([])
@@ -673,6 +675,11 @@ export default function DashboardPage() {
 
       {/* ── Add widget sheet ── */}
       {showAdd && <AddWidgetPanel layout={layout} onAdd={addWidget} onClose={() => setShowAdd(false)} />}
+
+      {/* ── Tour starter (reads ?tour=1 param safely) ── */}
+      <Suspense fallback={null}>
+        <TourStarter onStart={() => setShowTour(true)} />
+      </Suspense>
 
       {/* ── Interactive Tour ── */}
       {showTour && <TourOverlay onDone={() => setShowTour(false)} />}

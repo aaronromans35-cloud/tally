@@ -28,6 +28,23 @@ export default function SimulationPage() {
   const [tab, setTab] = useState<'portfolio' | 'trade' | 'leaderboard' | 'history'>('portfolio')
   const [copied, setCopied] = useState(false)
 
+  // Holding chart state
+  const [selectedHolding, setSelectedHolding] = useState<string | null>(null)
+  const [holdingQuote, setHoldingQuote] = useState<{ ticker: string; name: string; price: number; change: number; changePct: number; high52: number; low52: number; volume: number | null; history: { date: string; price: number }[] } | null>(null)
+  const [holdingRange, setHoldingRange] = useState('1M')
+  const [holdingChartLoading, setHoldingChartLoading] = useState(false)
+
+  async function loadHoldingChart(ticker: string, range = '1M') {
+    setSelectedHolding(ticker)
+    setHoldingRange(range)
+    setHoldingChartLoading(true)
+    try {
+      const res = await fetch(`/api/quote?ticker=${encodeURIComponent(ticker)}&range=${range}`, { cache: 'no-store' })
+      if (res.ok) { const q = await res.json(); if (q.price > 0) setHoldingQuote(q) }
+    } catch { /* ignore */ }
+    setHoldingChartLoading(false)
+  }
+
   // Trade state
   const [searchTicker, setSearchTicker] = useState('')
   const [quote, setQuote] = useState<{ ticker: string; name: string; price: number; change: number; changePct: number; high52: number; low52: number; volume: number | null; history: { date: string; price: number }[] } | null>(null)
@@ -415,37 +432,142 @@ export default function SimulationPage() {
                   <button className="btn-primary" onClick={() => setTab('trade')}>Start Trading →</button>
                 </div>
               ) : (
-                <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                  <div className="px-5 py-4 border-b font-semibold" style={{ borderColor: 'var(--border)' }}>Your Holdings</div>
-                  {holdings.filter(h => h.shares > 0).map((h, i, arr) => {
-                    const curPrice = h.currentPrice ?? h.avg_cost
-                    const value = h.shares * curPrice
-                    const gain = (curPrice - h.avg_cost) * h.shares
-                    const gainP = h.avg_cost > 0 ? ((curPrice - h.avg_cost) / h.avg_cost) * 100 : 0
-                    return (
-                      <div key={h.id} className="flex items-center gap-4 px-5 py-4 border-b"
-                        style={{ borderColor: 'var(--border)', borderBottomWidth: i === arr.length - 1 ? 0 : 1 }}>
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0"
-                          style={{ background: 'rgba(91,106,240,0.1)', color: 'var(--accent)' }}>
-                          {h.ticker.slice(0, 3)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold flex items-center gap-2">
-                            {h.ticker}
-                            {h.priceLoaded ? <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(34,197,94,0.1)', color: 'var(--green)' }}>live</span>
-                              : <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--card-border)', color: 'var(--muted)' }}>est.</span>}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Holdings list */}
+                  <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                    <div className="px-5 py-4 border-b font-semibold text-sm" style={{ borderColor: 'var(--border)' }}>
+                      Click a stock to see chart
+                    </div>
+                    {holdings.filter(h => h.shares > 0).map((h, i, arr) => {
+                      const curPrice = h.currentPrice ?? h.avg_cost
+                      const value = h.shares * curPrice
+                      const gain = (curPrice - h.avg_cost) * h.shares
+                      const gainP = h.avg_cost > 0 ? ((curPrice - h.avg_cost) / h.avg_cost) * 100 : 0
+                      const isSelected = selectedHolding === h.ticker
+                      return (
+                        <div key={h.id}
+                          className="flex items-center gap-4 px-5 py-4 border-b cursor-pointer transition-colors"
+                          style={{ borderColor: 'var(--border)', borderBottomWidth: i === arr.length - 1 ? 0 : 1, background: isSelected ? 'rgba(91,106,240,0.06)' : 'transparent' }}
+                          onClick={() => { if (isSelected) { setSelectedHolding(null); setHoldingQuote(null) } else loadHoldingChart(h.ticker) }}>
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0"
+                            style={{ background: isSelected ? 'var(--accent)' : 'rgba(91,106,240,0.1)', color: isSelected ? 'white' : 'var(--accent)' }}>
+                            {h.ticker.slice(0, 3)}
                           </div>
-                          <div className="text-xs" style={{ color: 'var(--muted)' }}>{h.shares} shares · avg {fmt(h.avg_cost)} · now {fmt(curPrice)}</div>
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          <div className="font-bold">{fmt(value)}</div>
-                          <div className="text-xs" style={{ color: gain >= 0 ? 'var(--green)' : 'var(--red)' }}>
-                            {gain >= 0 ? '+' : ''}{fmt(gain)} ({fmtPct(gainP)})
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold flex items-center gap-2">
+                              {h.ticker}
+                              {h.priceLoaded
+                                ? <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(34,197,94,0.1)', color: 'var(--green)' }}>live</span>
+                                : <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--card-border)', color: 'var(--muted)' }}>est.</span>}
+                            </div>
+                            <div className="text-xs" style={{ color: 'var(--muted)' }}>{h.shares} shares · avg {fmt(h.avg_cost)}</div>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <div className="font-bold">{fmt(value)}</div>
+                            <div className="text-xs" style={{ color: gain >= 0 ? 'var(--green)' : 'var(--red)' }}>
+                              {gain >= 0 ? '+' : ''}{fmt(gain)} ({fmtPct(gainP)})
+                            </div>
                           </div>
                         </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* Chart panel */}
+                  <div className="card flex flex-col gap-3" style={{ minHeight: 280 }}>
+                    {!selectedHolding && (
+                      <div className="flex-1 flex flex-col items-center justify-center text-center" style={{ color: 'var(--muted)' }}>
+                        <div className="text-3xl mb-2">📊</div>
+                        <div className="text-sm">Click a stock to see its chart</div>
                       </div>
-                    )
-                  })}
+                    )}
+                    {selectedHolding && holdingChartLoading && (
+                      <div className="flex-1 flex items-center justify-center">
+                        <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
+                      </div>
+                    )}
+                    {selectedHolding && holdingQuote && !holdingChartLoading && (() => {
+                      const q = holdingQuote
+                      const isPos = q.change >= 0
+                      const prices = q.history?.map(h => h.price) ?? []
+                      const minP = prices.length > 0 ? Math.min(...prices) : 0
+                      const maxP = prices.length > 0 ? Math.max(...prices) : 1
+                      const pts = prices.map((p, i) => {
+                        const x = (i / Math.max(prices.length - 1, 1)) * 600
+                        const y = 100 - ((p - minP) / (maxP - minP || 1)) * 85
+                        return `${x},${y}`
+                      }).join(' ')
+                      const holding = holdings.find(h => h.ticker === selectedHolding)
+                      const gain = holding ? (q.price - holding.avg_cost) * holding.shares : 0
+                      const gainP = holding && holding.avg_cost > 0 ? ((q.price - holding.avg_cost) / holding.avg_cost) * 100 : 0
+                      return (
+                        <>
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="font-bold text-lg">{q.ticker}</div>
+                              <div className="text-xs" style={{ color: 'var(--muted)' }}>{q.name}</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-2xl font-bold">{fmt(q.price)}</div>
+                              <div className="text-sm font-semibold" style={{ color: isPos ? 'var(--green)' : 'var(--red)' }}>
+                                {isPos ? '+' : ''}{fmt(q.change)} ({fmtPct(q.changePct)}) today
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Range selector */}
+                          <div className="flex gap-1">
+                            {['1W','1M','3M','6M','1Y'].map(r => (
+                              <button key={r} onClick={() => loadHoldingChart(selectedHolding, r)}
+                                className="px-3 py-1 rounded-lg text-xs font-semibold"
+                                style={{ background: holdingRange === r ? 'var(--accent)' : 'var(--card-border)', color: holdingRange === r ? 'white' : 'var(--muted)', border: 'none', cursor: 'pointer' }}>
+                                {r}
+                              </button>
+                            ))}
+                          </div>
+
+                          {/* Chart */}
+                          {prices.length > 1 && (
+                            <div style={{ background: 'var(--background)', borderRadius: 10, padding: '10px 6px 6px' }}>
+                              <svg viewBox="0 0 600 110" style={{ width: '100%', height: 110 }} preserveAspectRatio="none">
+                                <defs>
+                                  <linearGradient id="holdingGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor={isPos ? '#22c55e' : '#ef4444'} stopOpacity="0.3"/>
+                                    <stop offset="100%" stopColor={isPos ? '#22c55e' : '#ef4444'} stopOpacity="0"/>
+                                  </linearGradient>
+                                </defs>
+                                <polygon points={`0,100 ${pts} 600,100`} fill="url(#holdingGrad)"/>
+                                <polyline points={pts} fill="none" stroke={isPos ? '#22c55e' : '#ef4444'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </div>
+                          )}
+
+                          {/* Your position */}
+                          {holding && (
+                            <div className="p-3 rounded-xl" style={{ background: 'var(--background)' }}>
+                              <div className="text-xs font-semibold mb-2" style={{ color: 'var(--muted)' }}>YOUR POSITION</div>
+                              <div className="grid grid-cols-3 gap-2 text-center">
+                                <div>
+                                  <div className="text-sm font-bold">{holding.shares}</div>
+                                  <div className="text-xs" style={{ color: 'var(--muted)' }}>shares</div>
+                                </div>
+                                <div>
+                                  <div className="text-sm font-bold">{fmt(holding.avg_cost)}</div>
+                                  <div className="text-xs" style={{ color: 'var(--muted)' }}>avg cost</div>
+                                </div>
+                                <div>
+                                  <div className="text-sm font-bold" style={{ color: gain >= 0 ? 'var(--green)' : 'var(--red)' }}>
+                                    {gain >= 0 ? '+' : ''}{fmt(gain)}
+                                  </div>
+                                  <div className="text-xs" style={{ color: 'var(--muted)' }}>{fmtPct(gainP)}</div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )
+                    })()}
+                  </div>
                 </div>
               )}
             </div>

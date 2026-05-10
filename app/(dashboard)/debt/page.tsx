@@ -352,7 +352,12 @@ export default function DebtPage() {
               const payment  = d.minimum_payment + (i === 0 ? extraPayment : 0)
               const months   = calcMonths(d.balance, d.interest_rate, payment)
               const interest = totalInterestPaid(d.balance, d.interest_rate, payment)
-              const pct      = d.balance > 0 ? Math.min(100, (d.balance / (debts.find(x => x.id === d.id)?.balance ?? d.balance)) * 100) : 0
+              // Progress = months elapsed / total months (capped, shows journey to payoff)
+              const totalMonths = calcMonths(d.balance, d.interest_rate, d.minimum_payment)
+              const fasterMonths = isFinite(months) ? months : totalMonths
+              const pct = isFinite(totalMonths) && totalMonths > 0
+                ? Math.min(95, Math.max(5, (1 - fasterMonths / totalMonths) * 100))
+                : 5
               const isFocus  = i === 0
 
               return (

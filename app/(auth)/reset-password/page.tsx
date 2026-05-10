@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -11,6 +11,24 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
+  const [ready, setReady] = useState(false)
+
+  // Exchange the recovery token from the URL hash for a session
+  useEffect(() => {
+    const supabase = createClient()
+    // Listen for the PASSWORD_RECOVERY event Supabase fires when the
+    // user arrives from the reset email link
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+        setReady(true)
+      }
+    })
+    // Also check if already has a session (page refresh after recovery)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setReady(true)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -42,6 +60,11 @@ export default function ResetPasswordPage() {
             <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
             <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 400, color: 'var(--nx-navy-900)', marginBottom: 10 }}>Password updated</h1>
             <p style={{ fontSize: 14, color: 'var(--muted)' }}>Taking you to your dashboard…</p>
+          </div>
+        ) : !ready ? (
+          <div style={{ textAlign: 'center', paddingTop: 40 }}>
+            <div style={{ width: 32, height: 32, border: '3px solid var(--nx-navy-200)', borderTopColor: 'var(--nx-navy-800)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+            <p style={{ fontSize: 14, color: 'var(--muted)' }}>Verifying your reset link…</p>
           </div>
         ) : (
           <>

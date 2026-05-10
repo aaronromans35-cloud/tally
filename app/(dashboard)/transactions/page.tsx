@@ -8,11 +8,13 @@ import { useWorkspace } from '@/lib/context/WorkspaceContext'
 type Transaction = {
   id: string
   user_id: string
-  name: string
-  category: string
+  description: string   // actual DB column name
+  category_id: string | null
   amount: number
   type: 'income' | 'expense'
   date: string
+  // joined from budget_categories:
+  category_name?: string
 }
 
 const fmt = (n: number) =>
@@ -51,9 +53,18 @@ export default function TransactionsPage() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
-      const q = supabase.from('transactions').select('*').eq('user_id', user.id).order('date', { ascending: false })
+      const q = supabase
+        .from('transactions')
+        .select('*, budget_categories(name)')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false })
       const { data, error } = await (activeWorkspaceId ? q.eq('workspace_id', activeWorkspaceId) : q.is('workspace_id', null))
-      if (!error && data) setTransactions(data as Transaction[])
+      if (!error && data) {
+        setTransactions(data.map((t: Record<string, unknown>) => ({
+          ...t,
+          category_name: (t.budget_categories as { name: string } | null)?.name ?? null,
+        })) as Transaction[])
+      }
       setLoading(false)
     }
     load()
@@ -74,8 +85,8 @@ export default function TransactionsPage() {
   const searchLower = search.toLowerCase()
   const displayed = searchLower
     ? typeFiltered.filter(t =>
-        t.name?.toLowerCase().includes(searchLower) ||
-        t.category?.toLowerCase().includes(searchLower)
+        t.description?.toLowerCase().includes(searchLower) ||
+        t.category_name?.toLowerCase().includes(searchLower)
       )
     : typeFiltered
 
@@ -316,12 +327,12 @@ export default function TransactionsPage() {
                       {/* Name */}
                       <td style={{ padding: '13px 16px', fontWeight: 500, color: 'var(--foreground)', maxWidth: 220 }}>
                         <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
-                          {t.name || '—'}
+                          {t.description || '—'}
                         </span>
                       </td>
                       {/* Category */}
                       <td style={{ padding: '13px 16px' }}>
-                        {t.category ? (
+                        {t.category_name ? (
                           <span style={{
                             display: 'inline-flex',
                             alignItems: 'center',
@@ -333,7 +344,7 @@ export default function TransactionsPage() {
                             color: 'var(--foreground-secondary)',
                             whiteSpace: 'nowrap' as const,
                           }}>
-                            {t.category}
+                            {t.category_name}
                           </span>
                         ) : (
                           <span style={{ color: 'var(--muted)', fontSize: 13 }}>—</span>
@@ -415,7 +426,7 @@ export default function TransactionsPage() {
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
                     }}>
-                      {t.name || '—'}
+                      {t.description || '—'}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 12, color: 'var(--muted)' }}>{fmtDate(t.date)}</span>
@@ -428,7 +439,7 @@ export default function TransactionsPage() {
                           background: 'var(--nx-cream-200)',
                           color: 'var(--foreground-secondary)',
                         }}>
-                          {t.category}
+                          {t.category_name}
                         </span>
                       )}
                       <span style={{

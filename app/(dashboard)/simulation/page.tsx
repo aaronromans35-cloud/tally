@@ -40,7 +40,20 @@ export default function SimulationPage() {
     setHoldingChartLoading(true)
     try {
       const res = await fetch(`/api/quote?ticker=${encodeURIComponent(ticker)}&range=${range}`, { cache: 'no-store' })
-      if (res.ok) { const q = await res.json(); if (q.price > 0) setHoldingQuote(q) }
+      if (res.ok) {
+        const q = await res.json()
+        if (q.price > 0) {
+          // When changing range, preserve today's price/change — only update chart history
+          setHoldingQuote(prev => prev && prev.ticker === ticker ? {
+            ...q,
+            price: prev.price,
+            change: prev.change,
+            changePct: prev.changePct,
+            open: prev.open,
+            prevClose: prev.prevClose,
+          } : q)
+        }
+      }
     } catch { /* ignore */ }
     setHoldingChartLoading(false)
   }
@@ -219,12 +232,26 @@ export default function SimulationPage() {
     const r = range ?? quoteRange
     if (!t) return
     setQuoteLoading(true)
+    // Only clear quote when searching a new ticker
     if (!ticker) setQuote(null)
     setTradeMsg('')
     try {
       const res = await fetch(`/api/quote?ticker=${encodeURIComponent(t)}&range=${r}`, { cache: 'no-store' })
-      if (res.ok) { const q = await res.json(); if (q.price > 0) { setQuote(q); setQuoteRange(r) } else setTradeMsg('Ticker not found.') }
-      else setTradeMsg('Ticker not found.')
+      if (res.ok) {
+        const q = await res.json()
+        if (q.price > 0) {
+          // When changing range for the same ticker, keep today's price/change
+          setQuote(prev => prev && prev.ticker === t && ticker !== undefined ? {
+            ...q,
+            price: prev.price,
+            change: prev.change,
+            changePct: prev.changePct,
+            open: prev.open,
+            prevClose: prev.prevClose,
+          } : q)
+          setQuoteRange(r)
+        } else setTradeMsg('Ticker not found.')
+      } else setTradeMsg('Ticker not found.')
     } catch { setTradeMsg('Failed to fetch quote.') }
     setQuoteLoading(false)
   }

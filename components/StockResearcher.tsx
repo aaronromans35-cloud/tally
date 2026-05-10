@@ -38,7 +38,18 @@ export function StockResearcher() {
     if (!quote) return
     setRange(r)
     const res = await fetch(`/api/quote?ticker=${quote.ticker}&range=${r}`)
-    if (res.ok) { const q = await res.json(); setQuote(q) }
+    if (res.ok) {
+      const q = await res.json()
+      // Keep today's price/change — only update the chart history
+      setQuote(prev => prev ? {
+        ...q,
+        price: prev.price,
+        change: prev.change,
+        changePct: prev.changePct,
+        open: prev.open,
+        prevClose: prev.prevClose,
+      } : q)
+    }
   }
 
   async function getAnalysis() {

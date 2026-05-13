@@ -160,6 +160,18 @@ export function sanitizeStockResearchInput(body: unknown) {
     low52: sanitizeNumber(b.low52, 0, 1_000_000, 0),
     marketCap: sanitizeNumber(b.marketCap, 0, 100_000_000_000_000, 0),
     volume: sanitizeNumber(b.volume, 0, 100_000_000_000, 0),
+    rangeChangePct: sanitizeNumber(b.rangeChangePct, -10_000, 10_000, 0),
+    // Fundamentals (optional — null if not available)
+    pe: b.pe != null ? sanitizeNumber(b.pe, -10_000, 100_000, 0) : null,
+    forwardPe: b.forwardPe != null ? sanitizeNumber(b.forwardPe, -10_000, 100_000, 0) : null,
+    eps: b.eps != null ? sanitizeNumber(b.eps, -100_000, 100_000, 0) : null,
+    beta: b.beta != null ? sanitizeNumber(b.beta, -100, 100, 0) : null,
+    dividendYield: b.dividendYield != null ? sanitizeNumber(b.dividendYield, 0, 10, 0) : null,
+    sector: b.sector != null ? sanitizeString(b.sector, 80) : null,
+    industry: b.industry != null ? sanitizeString(b.industry, 100) : null,
+    revenueGrowth: b.revenueGrowth != null ? sanitizeNumber(b.revenueGrowth, -100, 1000, 0) : null,
+    profitMargin: b.profitMargin != null ? sanitizeNumber(b.profitMargin, -100, 100, 0) : null,
+    debtToEquity: b.debtToEquity != null ? sanitizeNumber(b.debtToEquity, 0, 100_000, 0) : null,
     history,
   }
 }

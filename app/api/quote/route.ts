@@ -23,6 +23,34 @@ const HEADERS = {
   'sec-fetch-site': 'same-site',
 }
 
+async function fetchFundamentals(ticker: string) {
+  try {
+    const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=summaryDetail,defaultKeyStatistics,assetProfile,financialData`
+    const res = await fetch(url, { headers: HEADERS, cache: 'no-store' })
+    if (!res.ok) return null
+    const data = await res.json()
+    const result = data?.quoteSummary?.result?.[0]
+    if (!result) return null
+    const sd = result.summaryDetail ?? {}
+    const ks = result.defaultKeyStatistics ?? {}
+    const ap = result.assetProfile ?? {}
+    const fd = result.financialData ?? {}
+    return {
+      pe: sd.trailingPE?.raw ?? null,
+      forwardPe: sd.forwardPE?.raw ?? null,
+      eps: ks.trailingEps?.raw ?? null,
+      beta: sd.beta?.raw ?? null,
+      dividendYield: sd.dividendYield?.raw ?? null,
+      sector: ap.sector ?? null,
+      industry: ap.industry ?? null,
+      revenueGrowth: fd.revenueGrowth?.raw ?? null,
+      profitMargin: fd.profitMargins?.raw ?? null,
+      debtToEquity: fd.debtToEquity?.raw ?? null,
+      avgVolume: sd.averageVolume?.raw ?? null,
+    }
+  } catch { return null }
+}
+
 async function fetchYahoo(ticker: string, interval: string, range: string) {
   // Try query1 first, fall back to query2
   const urls = [
@@ -68,8 +96,13 @@ export async function GET(req: NextRequest) {
   const { interval, range } = RANGE_MAP[rangeKey] ?? RANGE_MAP['1M']
 
   try {
-    const result = await fetchYahoo(ticker.toUpperCase(), interval, range)
+    const [result, fundamentals] = await Promise.all([
+      fetchYahoo(ticker.toUpperCase(), interval, range),
+      fetchFundamentals(ticker.toUpperCase()),
+    ])
     if (!result) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+    const fund = fundamentals ?? {}
 
     if (result.type === 'v7') {
       const q = result.data
@@ -89,6 +122,7 @@ export async function GET(req: NextRequest) {
         volume: q.regularMarketVolume ?? null,
         rangeChange: 0, rangeChangePct: 0,
         history: [{ date: 'Today', price, volume: q.regularMarketVolume ?? 0 }],
+        ...fund,
       })
     }
 
@@ -124,6 +158,7 @@ export async function GET(req: NextRequest) {
       rangeChange: parseFloat((lastPrice - firstPrice).toFixed(2)),
       rangeChangePct: firstPrice > 0 ? parseFloat(((lastPrice - firstPrice) / firstPrice * 100).toFixed(2)) : 0,
       history,
+      ...fund,
     })
   } catch (e) {
     console.error('Quote error:', e)

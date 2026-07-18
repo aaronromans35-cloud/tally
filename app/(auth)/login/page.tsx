@@ -37,14 +37,16 @@ export default function LoginPage() {
       return
     }
 
-    // Re-authenticate client-side so the session cookie is set
+    // Sign in client-side so the session cookie is set in the browser
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
       setError(error.message)
       setLoading(false)
     } else {
-      router.push('/dashboard')
+      // Hard redirect ensures the browser sends the new session cookie
+      // to the server so middleware sees it immediately
+      window.location.href = '/dashboard'
     }
   }
 

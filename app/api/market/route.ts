@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { quoteLimiter, getIP } from '@/lib/ratelimit'
 import { isValidTicker, sanitizeString } from '@/lib/validate'
 
 const MAX_TICKERS = 5
 
 export async function GET(req: NextRequest) {
+  const ip = getIP(req)
+  const { success } = await quoteLimiter.limit(ip)
+  if (!success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+
   const raw = req.nextUrl.searchParams.get('tickers') ?? ''
 
   // Sanitize and validate each ticker

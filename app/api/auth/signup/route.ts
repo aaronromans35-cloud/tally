@@ -30,7 +30,12 @@ export async function POST(req: NextRequest) {
   const { data: authData, error } = await supabase.auth.signUp({ email, password })
 
   if (error) {
-    return NextResponse.json({ error: error.message, remaining }, { status: 400 })
+    // Map specific errors to safe messages — don't expose Supabase internals
+    const msg = error.message?.toLowerCase() ?? ''
+    const safe = msg.includes('already registered') || msg.includes('already exists')
+      ? 'An account with this email already exists'
+      : 'Unable to create account. Please try again.'
+    return NextResponse.json({ error: safe, remaining }, { status: 400 })
   }
 
   return NextResponse.json({ user: authData.user?.id }, { status: 200 })

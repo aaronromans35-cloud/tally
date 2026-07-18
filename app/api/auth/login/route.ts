@@ -30,8 +30,9 @@ export async function POST(req: NextRequest) {
   const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
+    // Generic message — don't expose whether email exists or exact Supabase error
     return NextResponse.json(
-      { error: error.message, remaining },
+      { error: 'Invalid email or password', remaining },
       { status: 401 }
     )
   }

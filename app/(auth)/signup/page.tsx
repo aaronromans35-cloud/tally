@@ -37,19 +37,6 @@ export default function SignupPage() {
     setLoading(true)
     setError('')
 
-    // Check rate limit before signing up
-    const limitRes = await fetch('/api/auth/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: form.email, password: form.password }),
-    })
-    if (limitRes.status === 429) {
-      const data = await limitRes.json()
-      setError(data.error)
-      setLoading(false)
-      return
-    }
-
     const supabase = createClient()
     const { data, error: signupError } = await supabase.auth.signUp({
       email: form.email,

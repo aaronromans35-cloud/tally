@@ -42,8 +42,15 @@ export async function updateSession(request: NextRequest) {
   if (!user && isProtected) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
-    return NextResponse.redirect(url)
+    const redirectResponse = NextResponse.redirect(url)
+    // Must copy cookies so any refreshed tokens aren't lost
+    supabaseResponse.cookies.getAll().forEach(cookie => {
+      redirectResponse.cookies.set(cookie.name, cookie.value)
+    })
+    return redirectResponse
   }
 
+  // IMPORTANT: must return supabaseResponse so refreshed session
+  // cookies are forwarded to the browser on every request
   return supabaseResponse
 }

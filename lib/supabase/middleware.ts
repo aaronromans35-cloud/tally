@@ -30,7 +30,15 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // If Supabase is unreachable (paused project, network issue), fail open
+  // so the app still loads rather than crashing everything
+  let user = null
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch {
+    return supabaseResponse
+  }
 
   const protectedPaths = [
     '/dashboard', '/budget', '/portfolio', '/plan', '/tax', '/debt',

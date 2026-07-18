@@ -16,36 +16,13 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
 
-    // Call rate-limited auth endpoint
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    })
-
-    if (res.status === 429) {
-      const data = await res.json()
-      setError(data.error)
-      setLoading(false)
-      return
-    }
-
-    if (!res.ok) {
-      const data = await res.json()
-      setError(data.error ?? 'Login failed')
-      setLoading(false)
-      return
-    }
-
-    // Sign in client-side so the session cookie is set in the browser
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
+
     if (error) {
-      setError(error.message)
+      setError('Invalid email or password')
       setLoading(false)
     } else {
-      // Hard redirect ensures the browser sends the new session cookie
-      // to the server so middleware sees it immediately
       window.location.href = '/dashboard'
     }
   }

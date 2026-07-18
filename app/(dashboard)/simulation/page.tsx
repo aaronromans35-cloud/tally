@@ -30,7 +30,7 @@ export default function SimulationPage() {
 
   // Holding chart state
   const [selectedHolding, setSelectedHolding] = useState<string | null>(null)
-  const [holdingQuote, setHoldingQuote] = useState<{ ticker: string; name: string; price: number; change: number; changePct: number; high52: number; low52: number; volume: number | null; history: { date: string; price: number }[] } | null>(null)
+  const [holdingQuote, setHoldingQuote] = useState<{ ticker: string; name: string; price: number; change: number; changePct: number; open: number; prevClose: number; high52: number; low52: number; volume: number | null; history: { date: string; price: number }[] } | null>(null)
   const [holdingRange, setHoldingRange] = useState('1M')
   const [holdingChartLoading, setHoldingChartLoading] = useState(false)
 
@@ -60,7 +60,7 @@ export default function SimulationPage() {
 
   // Trade state
   const [searchTicker, setSearchTicker] = useState('')
-  const [quote, setQuote] = useState<{ ticker: string; name: string; price: number; change: number; changePct: number; high52: number; low52: number; volume: number | null; history: { date: string; price: number }[] } | null>(null)
+  const [quote, setQuote] = useState<{ ticker: string; name: string; price: number; change: number; changePct: number; open: number; prevClose: number; high52: number; low52: number; volume: number | null; history: { date: string; price: number }[] } | null>(null)
   const [quoteRange, setQuoteRange] = useState('1M')
   const [quoteLoading, setQuoteLoading] = useState(false)
   const [tradeAction, setTradeAction] = useState<'buy' | 'sell'>('buy')

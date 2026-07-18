@@ -98,9 +98,9 @@ export async function POST(req: NextRequest) {
     const taxStatus = profile?.tax_filing_status ?? 'single'
     const yearsToRetirement = Math.max(0, retirementAge - age)
     const monthlySavings = (income / 12) - expenses
-    const totalDebt = debts?.reduce((s: number, d: { balance: number }) => s + d.balance, 0) ?? 0
-    const highInterestDebt = debts?.filter((d: { interest_rate: number }) => d.interest_rate > 7) ?? []
-    const portfolioValue = holdings?.reduce((s: number, h: { shares: number; avg_cost_basis: number }) => s + h.shares * h.avg_cost_basis, 0) ?? 0
+    const totalDebt = debts?.reduce((s: number, d: { balance: number } | null) => s + (d?.balance ?? 0), 0) ?? 0
+    const highInterestDebt = debts?.filter((d: { interest_rate: number } | null) => (d?.interest_rate ?? 0) > 7) ?? []
+    const portfolioValue = holdings?.reduce((s: number, h: { shares: number; avg_cost_basis: number } | null) => s + (h ? h.shares * h.avg_cost_basis : 0), 0) ?? 0
 
     const userPrompt = `Generate a personalized financial plan for this young person:
 
@@ -113,18 +113,18 @@ YEARS UNTIL RETIREMENT (age 65): ${yearsToRetirement}
 TAX FILING STATUS: ${taxStatus}
 
 THEIR GOALS:
-${goals?.map((g: { name: string; type: string; target_amount: number; target_date: string }) => `- ${g.name} (${g.type}): $${g.target_amount?.toLocaleString() ?? 'unset'} by ${g.target_date ?? 'unset'}`).join('\n') || '- Learning to manage money and start investing'}
+${goals?.map((g: { name: string; type: string; target_amount: number; target_date: string } | null) => g ? `- ${g.name} (${g.type}): $${g.target_amount?.toLocaleString() ?? 'unset'} by ${g.target_date ?? 'unset'}` : null).filter(Boolean).join('\n') || '- Learning to manage money and start investing'}
 
 CURRENT DEBTS:
-${debts?.length > 0 ? debts.map((d: { name: string; balance: number; interest_rate: number }) => `- ${d.name}: $${d.balance.toLocaleString()} @ ${d.interest_rate}%`).join('\n') : '- No debts (great!)'}
-HIGH-INTEREST DEBT (>7%): ${highInterestDebt.length > 0 ? `$${highInterestDebt.reduce((s: number, d: { balance: number }) => s + d.balance, 0).toLocaleString()} — address this first` : 'None'}
+${debts?.length > 0 ? debts.map((d: { name: string; balance: number; interest_rate: number } | null) => d ? `- ${d.name}: $${d.balance.toLocaleString()} @ ${d.interest_rate}%` : null).filter(Boolean).join('\n') : '- No debts (great!)'}
+HIGH-INTEREST DEBT (>7%): ${highInterestDebt.length > 0 ? `$${(highInterestDebt as { balance: number }[]).reduce((s: number, d: { balance: number }) => s + d.balance, 0).toLocaleString()} — address this first` : 'None'}
 
 CURRENT PORTFOLIO VALUE: $${portfolioValue.toLocaleString()}
 NUMBER OF INVESTMENTS: ${holdings?.length ?? 0}
 
 BUDGET THIS MONTH:
-Income tracked: $${budget?.income?.toLocaleString() ?? 'not tracked yet'}
-Expenses tracked: $${budget?.expenses?.toLocaleString() ?? 'not tracked yet'}
+Income tracked: $${(budget as Record<string, number> | null)?.income?.toLocaleString() ?? 'not tracked yet'}
+Expenses tracked: $${(budget as Record<string, number> | null)?.expenses?.toLocaleString() ?? 'not tracked yet'}
 
 ADDITIONAL CONTEXT:
 ${extraContext || 'None provided'}

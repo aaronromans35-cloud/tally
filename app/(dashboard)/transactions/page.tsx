@@ -430,7 +430,7 @@ export default function TransactionsPage() {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 12, color: 'var(--muted)' }}>{fmtDate(t.date)}</span>
-                      {t.category && (
+                      {t.category_id && (
                         <span style={{
                           fontSize: 11,
                           fontWeight: 500,

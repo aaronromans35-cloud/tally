@@ -27,6 +27,8 @@ export default function SignupPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
+  const [ageConfirmed, setAgeConfirmed] = useState(false)
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
 
   function set(k: string) {
     return (e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, [k]: e.target.value }))
@@ -189,13 +191,46 @@ export default function SignupPage() {
                   <input className="input" type="password" value={form.password} onChange={set('password')} required placeholder="At least 8 characters" minLength={8} />
                 </div>
 
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 13, color: 'var(--nx-navy-700)', lineHeight: 1.45, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={ageConfirmed}
+                      onChange={(e) => setAgeConfirmed(e.target.checked)}
+                      required
+                      style={{ marginTop: 2, width: 15, height: 15, flexShrink: 0, cursor: 'pointer' }}
+                    />
+                    <span>I confirm that I am at least 13 years old.</span>
+                  </label>
+
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 13, color: 'var(--nx-navy-700)', lineHeight: 1.45, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={agreedToTerms}
+                      onChange={(e) => setAgreedToTerms(e.target.checked)}
+                      required
+                      style={{ marginTop: 2, width: 15, height: 15, flexShrink: 0, cursor: 'pointer' }}
+                    />
+                    <span>
+                      I agree to the{' '}
+                      <Link href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'underline' }}>
+                        Terms of Service
+                      </Link>
+                      {' '}and{' '}
+                      <Link href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'underline' }}>
+                        Privacy Policy
+                      </Link>.
+                    </span>
+                  </label>
+                </div>
+
                 {error && (
                   <div style={{ padding: '10px 14px', borderRadius: 8, fontSize: 13.5, background: 'var(--nx-neg-50)', color: 'var(--nx-neg-700)', border: '1px solid var(--nx-neg-100)' }}>
                     {error}
                   </div>
                 )}
 
-                <button type="submit" className="btn-primary" disabled={loading}
+                <button type="submit" className="btn-primary" disabled={loading || !ageConfirmed || !agreedToTerms}
                   style={{ width: '100%', justifyContent: 'center', padding: '11px', fontSize: 14.5, marginTop: 2 }}>
                   {loading ? 'Creating account…' : 'Create free account'}
                 </button>

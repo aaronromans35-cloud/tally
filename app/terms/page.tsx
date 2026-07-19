@@ -125,7 +125,7 @@ export default function TermsPage() {
         </Section>
 
         <Section title="Governing Law">
-          <P>These Terms are governed by the laws of the United States and the State of Texas, without regard to conflict of law principles. Any disputes arising under these Terms shall be resolved in the courts of Texas, and you consent to personal jurisdiction in that venue.</P>
+          <P>These Terms are governed by the laws of the United States and the State of Illinois, without regard to conflict of law principles. Any disputes arising under these Terms shall be resolved in the courts of Illinois, and you consent to personal jurisdiction in that venue.</P>
           <P>For users in jurisdictions that require local law to apply, we comply with applicable local law to the extent required.</P>
         </Section>
 

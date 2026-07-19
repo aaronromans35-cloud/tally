@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
     rangeChangePct,
     pe, forwardPe, eps, beta, dividendYield,
     sector, industry, revenueGrowth, profitMargin, debtToEquity,
+    question,
   } = input
 
   const historyStr = history.slice(-30).map((h) =>
@@ -48,30 +49,35 @@ export async function POST(req: NextRequest) {
   const fmtPct = (n: number | null | undefined, decimals = 1) =>
     n != null ? `${(n * 100).toFixed(decimals)}%` : 'N/A'
 
-  const prompt = `You are a financial educator at a top high school teaching a personal finance class. A student has looked up ${name} (${ticker}) and wants to understand it deeply. Your job is to teach — not just describe. Explain what each metric *means* and what it tells us. Use plain language, real-world analogies, and concrete examples. Be thorough.
+  const stockContext = `Company: ${name} (${ticker})
+Sector: ${sector ?? 'N/A'} | Industry: ${industry ?? 'N/A'}
+Price: $${price} | Today: ${change >= 0 ? '+' : ''}$${change} (${changePct}%) | Period Return: ${rangeChangePct >= 0 ? '+' : ''}${rangeChangePct}%
+52-Week Range: $${low52} – $${high52} (currently at ${rangePos}%)
+Market Cap: ${marketCap ? `$${(marketCap / 1e9).toFixed(1)}B` : 'N/A'} | Volume: ${volume ? volume.toLocaleString() : 'N/A'}
+P/E: ${pe != null ? pe.toFixed(1) : 'N/A'} | Forward P/E: ${forwardPe != null ? forwardPe.toFixed(1) : 'N/A'} | EPS: ${eps != null ? `$${eps.toFixed(2)}` : 'N/A'}
+Beta: ${beta != null ? beta.toFixed(2) : 'N/A'} | Dividend: ${dividendYield != null ? fmtPct(dividendYield) : 'None'}
+Revenue Growth: ${revenueGrowth != null ? fmtPct(revenueGrowth) : 'N/A'} | Profit Margin: ${profitMargin != null ? fmtPct(profitMargin) : 'N/A'} | Debt/Equity: ${debtToEquity != null ? debtToEquity.toFixed(1) : 'N/A'}
+Recent Price History: ${historyStr}`
+
+  let prompt: string
+
+  if (question) {
+    // Follow-up question mode — targeted answer
+    prompt = `You are a financial educator helping a teenager learn about investing. They're researching ${name} (${ticker}) and have a specific question.
 
 ━━━ STOCK DATA ━━━
-Company: ${name} (${ticker})
-Sector: ${sector ?? 'N/A'} | Industry: ${industry ?? 'N/A'}
+${stockContext}
 
-PRICE & PERFORMANCE
-• Current Price: $${price}  |  Today: ${change >= 0 ? '+' : ''}$${change} (${changePct}%)
-• Period Return: ${rangeChangePct >= 0 ? '+' : ''}${rangeChangePct}%
-• 52-Week Range: $${low52} – $${high52}  |  Currently at ${rangePos}% of that range
-• Market Cap: ${marketCap ? `$${(marketCap / 1e9).toFixed(1)}B` : 'N/A'}
-• Volume Today: ${volume ? volume.toLocaleString() : 'N/A'}
+━━━ STUDENT'S QUESTION ━━━
+${question}
 
-VALUATION & FUNDAMENTALS
-• P/E Ratio (Trailing): ${pe != null ? pe.toFixed(1) : 'N/A'}
-• Forward P/E: ${forwardPe != null ? forwardPe.toFixed(1) : 'N/A'}
-• EPS (Earnings Per Share): ${eps != null ? `$${eps.toFixed(2)}` : 'N/A'}
-• Beta: ${beta != null ? beta.toFixed(2) : 'N/A'}
-• Dividend Yield: ${dividendYield != null ? fmtPct(dividendYield) : 'None'}
-• Revenue Growth (YoY): ${revenueGrowth != null ? fmtPct(revenueGrowth) : 'N/A'}
-• Profit Margin: ${profitMargin != null ? fmtPct(profitMargin) : 'N/A'}
-• Debt-to-Equity: ${debtToEquity != null ? debtToEquity.toFixed(1) : 'N/A'}
+Answer this question directly and educationally. Use plain language a high schooler can understand. Use **bold** to highlight key terms or important points. Be concise but thorough — 2-4 paragraphs max. Don't recommend buying or selling. Focus on teaching.`
+  } else {
+    // Full analysis mode
+    prompt = `You are a financial educator at a top high school teaching a personal finance class. A student has looked up ${name} (${ticker}) and wants to understand it deeply. Your job is to teach — not just describe. Explain what each metric *means* and what it tells us. Use plain language, real-world analogies, and concrete examples. Be thorough.
 
-RECENT PRICE HISTORY: ${historyStr}
+━━━ STOCK DATA ━━━
+${stockContext}
 
 ━━━ YOUR ANALYSIS TASK ━━━
 Write a comprehensive educational breakdown using these exact sections. Use the headers exactly as written:
@@ -96,10 +102,11 @@ Give 3 specific opportunities that could drive this company's growth — new pro
 Synthesize everything: What type of investor does this stock suit (growth, value, income, speculative)? What are the 2-3 most important things to monitor going forward? What would you tell a student who is considering this stock for a school investment portfolio? End with one thought-provoking question they should research before deciding.
 
 Do NOT recommend buying or selling. Be balanced and honest. Length: aim for thorough, not padded — quality over word count.`
+  }
 
   const message = await client.messages.create({
-    model: 'claude-opus-4-5',
-    max_tokens: 1400,
+    model: 'claude-sonnet-4-6',
+    max_tokens: question ? 600 : 1400,
     messages: [{ role: 'user', content: prompt }],
   })
 

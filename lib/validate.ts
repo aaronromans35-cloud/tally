@@ -173,5 +173,6 @@ export function sanitizeStockResearchInput(body: unknown) {
     profitMargin: b.profitMargin != null ? sanitizeNumber(b.profitMargin, -100, 100, 0) : null,
     debtToEquity: b.debtToEquity != null ? sanitizeNumber(b.debtToEquity, 0, 100_000, 0) : null,
     history,
+    question: b.question != null ? sanitizeString(b.question, 500) : null,
   }
 }

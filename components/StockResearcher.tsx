@@ -16,6 +16,17 @@ type QuoteData = {
 type QA = { q: string; a: string; loading: boolean }
 type Tab = 'overview' | 'technicals' | 'fundamentals' | 'ai'
 
+type StockReport = {
+  whatItDoes: string
+  priceContext: string
+  keyMetrics: { label: string; value: string; explanation: string }[]
+  risks: string[]
+  catalysts: string[]
+  investorProfile: string
+  watchFor: string[]
+  researchQuestion: string
+}
+
 const fmt = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const fmtPct = (n: number | null, multiply = false) =>
@@ -391,7 +402,8 @@ export function StockResearcher() {
   const svgRef = useRef<SVGSVGElement>(null)
 
   // AI state
-  const [analysis, setAnalysis] = useState('')
+  const [report, setReport] = useState<StockReport | null>(null)
+  const [analysisFallback, setAnalysisFallback] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
   const [qaHistory, setQaHistory] = useState<QA[]>([])
   const [customQ, setCustomQ] = useState('')
@@ -410,7 +422,8 @@ export function StockResearcher() {
     setLoading(true)
     setError('')
     setQuote(null)
-    setAnalysis('')
+    setReport(null)
+    setAnalysisFallback('')
     setQaHistory([])
     setHoverIdx(null)
     try {
@@ -440,16 +453,22 @@ export function StockResearcher() {
   async function getAnalysis() {
     if (!quote) return
     setAnalyzing(true)
-    setAnalysis('')
+    setReport(null)
+    setAnalysisFallback('')
     try {
       const res = await fetch('/api/stock-research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(quote),
       })
-      if (res.ok) { const d = await res.json(); setAnalysis(d.analysis) }
-      else setAnalysis('Failed to generate analysis. Please try again.')
-    } catch { setAnalysis('Failed to generate analysis.') }
+      if (res.ok) {
+        const d = await res.json()
+        if (d.report) setReport(d.report)
+        else setAnalysisFallback(d.analysis ?? 'Failed to generate analysis. Please try again.')
+      } else {
+        setAnalysisFallback('Failed to generate analysis. Please try again.')
+      }
+    } catch { setAnalysisFallback('Failed to generate analysis.') }
     setAnalyzing(false)
   }
 
@@ -509,7 +528,7 @@ export function StockResearcher() {
     setHoverIdx(best)
   }
 
-  const analysisSections = analysis ? parseAnalysisSections(analysis) : []
+  const analysisFallbackSections = analysisFallback ? parseAnalysisSections(analysisFallback) : []
 
   // Technical indicators (computed from whatever price history is loaded)
   const smaPeriod = Math.min(20, Math.max(3, Math.floor(prices.length / 2)))
@@ -712,7 +731,7 @@ export function StockResearcher() {
             {/* CTA to AI tab */}
             <button className="w-full py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2"
               style={{ background: 'rgba(91,106,240,0.08)', border: '1px solid rgba(91,106,240,0.2)', color: 'var(--accent)', cursor: 'pointer' }}
-              onClick={() => { setTab('ai'); if (!analysis && !analyzing) getAnalysis() }}>
+              onClick={() => { setTab('ai'); if (!report && !analysisFallback && !analyzing) getAnalysis() }}>
               🤖 Get Full AI Research Report →
             </button>
 
@@ -860,7 +879,7 @@ export function StockResearcher() {
           {tab === 'ai' && (<>
 
             {/* Full analysis block */}
-            {!analysis && !analyzing && (
+            {!report && !analysisFallback && !analyzing && (
               <div className="text-center py-6">
                 <div style={{ fontSize: 44, marginBottom: 10 }}>🤖</div>
                 <div className="font-bold text-base mb-1">AI Research Report</div>
@@ -879,18 +898,120 @@ export function StockResearcher() {
               </div>
             )}
 
-            {analysis && analysisSections.length > 0 && (
+            {/* Structured report — cards & lists, not paragraphs */}
+            {report && (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--accent)' }}>
+                    Research Report — {quote.ticker}
+                  </div>
+                  <button className="text-xs" style={{ color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer' }}
+                    onClick={() => { setReport(null); setQaHistory([]) }}>
+                    ↺ Refresh
+                  </button>
+                </div>
+
+                {/* What it does + price context */}
+                <div className="rounded-xl p-3.5" style={{ background: 'rgba(91,106,240,0.06)', border: '1px solid var(--border)' }}>
+                  <div className="text-xs font-bold mb-1.5" style={{ color: 'var(--accent)' }}>📌 What {quote.ticker} Does</div>
+                  <div className="text-sm leading-relaxed" style={{ color: 'var(--foreground)' }}>{report.whatItDoes}</div>
+                </div>
+                <div className="rounded-xl p-3.5" style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
+                  <div className="text-xs font-bold mb-1.5" style={{ color: 'var(--accent)' }}>📈 Price Context</div>
+                  <div className="text-sm leading-relaxed" style={{ color: 'var(--foreground)' }}>{report.priceContext}</div>
+                </div>
+
+                {/* Key metrics grid */}
+                {report.keyMetrics?.length > 0 && (
+                  <div>
+                    <div className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: 'var(--accent)' }}>🔢 Key Numbers Explained</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {report.keyMetrics.map((m, i) => (
+                        <div key={i} className="p-3 rounded-xl" style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
+                          <div className="flex items-baseline justify-between gap-2 mb-1">
+                            <div className="text-xs font-bold" style={{ color: 'var(--muted)' }}>{m.label}</div>
+                            <div className="text-sm font-black" style={{ color: 'var(--foreground)' }}>{m.value}</div>
+                          </div>
+                          <div className="text-xs leading-relaxed" style={{ color: 'var(--foreground-secondary)' }}>{m.explanation}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Risks */}
+                {report.risks?.length > 0 && (
+                  <div>
+                    <div className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: 'var(--accent)' }}>⚠️ Risks to Understand</div>
+                    <div className="flex flex-col gap-1.5">
+                      {report.risks.map((r, i) => (
+                        <div key={i} className="flex items-start gap-2 p-2.5 rounded-lg text-sm leading-relaxed"
+                          style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.18)', color: 'var(--foreground)' }}>
+                          <span style={{ flexShrink: 0 }}>⚠️</span>
+                          <span>{r}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Catalysts */}
+                {report.catalysts?.length > 0 && (
+                  <div>
+                    <div className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: 'var(--accent)' }}>🚀 Growth Catalysts</div>
+                    <div className="flex flex-col gap-1.5">
+                      {report.catalysts.map((c, i) => (
+                        <div key={i} className="flex items-start gap-2 p-2.5 rounded-lg text-sm leading-relaxed"
+                          style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.18)', color: 'var(--foreground)' }}>
+                          <span style={{ flexShrink: 0 }}>🚀</span>
+                          <span>{c}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Investor takeaway */}
+                <div className="rounded-xl p-3.5" style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
+                  <div className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: 'var(--accent)' }}>🎓 For a Young Investor</div>
+                  {report.investorProfile && (
+                    <div className="inline-block text-xs font-bold px-2 py-1 rounded-full mb-2"
+                      style={{ background: 'rgba(91,106,240,0.1)', color: 'var(--accent)', border: '1px solid rgba(91,106,240,0.2)' }}>
+                      {report.investorProfile}
+                    </div>
+                  )}
+                  {report.watchFor?.length > 0 && (
+                    <div className="flex flex-col gap-1 mb-2.5">
+                      {report.watchFor.map((w, i) => (
+                        <div key={i} className="text-sm flex items-start gap-1.5" style={{ color: 'var(--foreground)' }}>
+                          <span style={{ color: 'var(--accent)', flexShrink: 0 }}>•</span>
+                          <span>{w}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {report.researchQuestion && (
+                    <div className="text-sm rounded-lg p-2.5" style={{ background: 'rgba(201,164,55,0.08)', border: '1px solid rgba(201,164,55,0.2)', color: 'var(--foreground)' }}>
+                      <strong>Before you decide:</strong> {report.researchQuestion}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Fallback: raw text, only if structured parsing failed server-side */}
+            {analysisFallback && (
               <div className="flex flex-col gap-2.5">
                 <div className="flex items-center justify-between">
                   <div className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--accent)' }}>
                     Research Report — {quote.ticker}
                   </div>
                   <button className="text-xs" style={{ color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer' }}
-                    onClick={() => { setAnalysis(''); setQaHistory([]) }}>
+                    onClick={() => { setAnalysisFallback(''); setQaHistory([]) }}>
                     ↺ Refresh
                   </button>
                 </div>
-                {analysisSections.map((sec, i) => (
+                {analysisFallbackSections.map((sec, i) => (
                   <div key={i} className="rounded-xl p-3.5"
                     style={{ background: i === 0 ? 'rgba(91,106,240,0.06)' : 'var(--background)', border: '1px solid var(--border)' }}>
                     {sec.header && <div className="text-sm font-bold mb-2">{sec.header}</div>}

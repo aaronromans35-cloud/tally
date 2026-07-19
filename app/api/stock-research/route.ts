@@ -73,43 +73,60 @@ ${question}
 
 Answer this question directly and educationally. Use plain language a high schooler can understand. Use **bold** to highlight key terms or important points. Be concise but thorough — 2-4 paragraphs max. Don't recommend buying or selling. Focus on teaching.`
   } else {
-    // Full analysis mode
-    prompt = `You are a financial educator at a top high school teaching a personal finance class. A student has looked up ${name} (${ticker}) and wants to understand it deeply. Your job is to teach — not just describe. Explain what each metric *means* and what it tells us. Use plain language, real-world analogies, and concrete examples. Be thorough.
+    // Full analysis mode — structured JSON, rendered as cards/lists on the client (not prose)
+    prompt = `You are a financial educator at a top high school teaching a personal finance class. A student has looked up ${name} (${ticker}) and wants to understand it deeply. Your job is to teach — not just describe. Use plain language, real-world analogies, and concrete examples specific to THIS company. Never use generic filler.
 
 ━━━ STOCK DATA ━━━
 ${stockContext}
 
-━━━ YOUR ANALYSIS TASK ━━━
-Write a comprehensive educational breakdown using these exact sections. Use the headers exactly as written:
+━━━ YOUR TASK ━━━
+Respond with ONLY a valid JSON object — no markdown, no code fences, no commentary before or after. Match this exact shape:
 
-**📌 What This Company Does**
-Explain the business in 2-3 sentences a 16-year-old would understand. What problem do they solve? How do they make money? Give a real-world analogy if helpful.
+{
+  "whatItDoes": "2-3 sentences a 16-year-old would understand: what problem the company solves and how it makes money. Use a real-world analogy if it helps.",
+  "priceContext": "1-2 sentences on what the price has done today and over the recent period, in context. Reference that it's trading at ${rangePos}% of its 52-week range and what that suggests.",
+  "keyMetrics": [
+    { "label": "metric name, e.g. P/E Ratio", "value": "this company's actual number, formatted (e.g. '28.4' or '$1.2B')", "explanation": "1-2 sentences: what the metric means in plain English, and whether this number is high, low, or average for the industry." }
+    // 4-5 of these, prioritizing P/E, Beta, and any standout metrics from the data above
+  ],
+  "risks": [
+    "one specific, substantive risk for THIS company (1-2 sentences) — competitive threats, industry trends, business model vulnerabilities, valuation concerns, or macro factors specific to this sector"
+    // exactly 3 items
+  ],
+  "catalysts": [
+    "one specific growth opportunity for THIS company (1-2 sentences) — new products, market expansion, industry tailwinds, competitive advantages, or favorable trends"
+    // exactly 3 items
+  ],
+  "investorProfile": "one short phrase: what type of investor this stock suits, e.g. 'Growth-oriented, higher risk tolerance'",
+  "watchFor": [
+    "short phrase: one important thing to monitor going forward"
+    // 2-3 items
+  ],
+  "researchQuestion": "one thought-provoking question the student should research before deciding — not a yes/no question"
+}
 
-**📈 Price Performance**
-Explain what the price has done today and over the recent period. Put it in context — is ${rangeChangePct >= 0 ? 'this gain' : 'this decline'} large or small for this type of company? What does trading at ${rangePos}% of its 52-week range suggest about where investors think the stock is headed?
-
-**🔢 Understanding the Key Numbers**
-Pick the 4-5 most relevant metrics from the data above and teach each one. For each: (1) explain what the metric IS in plain English, (2) state this company's actual number, (3) explain what that number tells us — is it high, low, or average for its industry? What does it imply about the company's health?
-Focus especially on P/E ratio, Beta, and any standout metrics.
-
-**⚠️ Risks to Understand**
-Give 3 specific, substantive risks for THIS company — not generic "stocks can fall." Think about competitive threats, industry trends, business model vulnerabilities, valuation concerns, or macro factors specific to this sector.
-
-**🚀 Growth Catalysts**
-Give 3 specific opportunities that could drive this company's growth — new products, market expansion, industry tailwinds, competitive advantages, or trends working in their favor.
-
-**🎓 What a Smart Young Investor Should Know**
-Synthesize everything: What type of investor does this stock suit (growth, value, income, speculative)? What are the 2-3 most important things to monitor going forward? What would you tell a student who is considering this stock for a school investment portfolio? End with one thought-provoking question they should research before deciding.
-
-Do NOT recommend buying or selling. Be balanced and honest. Length: aim for thorough, not padded — quality over word count.`
+Do NOT recommend buying or selling. Be balanced, honest, and specific — quality over word count. Every string should be concise (1-2 sentences max), never a paragraph.`
   }
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: question ? 600 : 1400,
+    max_tokens: question ? 600 : 1600,
     messages: [{ role: 'user', content: prompt }],
   })
 
   const text = message.content[0].type === 'text' ? message.content[0].text : ''
-  return NextResponse.json({ analysis: text })
+
+  if (question) {
+    return NextResponse.json({ analysis: text })
+  }
+
+  // Full analysis: parse structured JSON, defensively stripping any stray code fences
+  try {
+    const cleaned = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '')
+    const report = JSON.parse(cleaned)
+    return NextResponse.json({ report })
+  } catch {
+    // Fall back to raw text so the client still has something to show
+    return NextResponse.json({ analysis: text })
+  }
 }

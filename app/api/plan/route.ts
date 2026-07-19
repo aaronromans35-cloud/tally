@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { aiLimiter, getIP } from '@/lib/ratelimit'
+import { aiLimiter, getIP, safeLimit } from '@/lib/ratelimit'
 import { parseBody, sanitizePlanInput } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
 
   // Rate limit per user ID (not just IP)
   const ip = getIP(req)
-  const { success, remaining } = await aiLimiter.limit(user.id ?? ip)
+  const { success, remaining } = await safeLimit(aiLimiter, user.id ?? ip)
   if (!success) {
     return NextResponse.json(
       { error: 'Too many requests. Please wait before generating another plan.' },

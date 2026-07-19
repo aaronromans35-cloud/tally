@@ -32,3 +32,13 @@ export function getIP(req: Request): string {
   const ip = forwarded ? forwarded.split(',')[0].trim() : '127.0.0.1'
   return ip
 }
+
+// Wraps any limiter so that if Redis is unreachable the request is allowed
+// through rather than crashing the API route with a 500
+export async function safeLimit(limiter: Ratelimit, key: string) {
+  try {
+    return await limiter.limit(key)
+  } catch {
+    return { success: true, remaining: 999, reset: Date.now() + 60_000 }
+  }
+}

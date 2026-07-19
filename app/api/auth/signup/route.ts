@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { authLimiter, getIP } from '@/lib/ratelimit'
+import { authLimiter, getIP, safeLimit } from '@/lib/ratelimit'
 import { createClient } from '@/lib/supabase/server'
 import { parseBody, validateAuthInput, sanitizeString } from '@/lib/validate'
 
 export async function POST(req: NextRequest) {
   // Rate limit: 5 attempts per 10 minutes per IP
   const ip = getIP(req)
-  const { success, remaining, reset } = await authLimiter.limit(ip)
+  const { success, remaining, reset } = await safeLimit(authLimiter, ip)
   if (!success) {
     const waitSecs = Math.ceil((reset - Date.now()) / 1000)
     return NextResponse.json(

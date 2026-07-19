@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 type QuoteData = {
   ticker: string; name: string; price: number; change: number; changePct: number
@@ -14,7 +14,7 @@ type QuoteData = {
 }
 
 type QA = { q: string; a: string; loading: boolean }
-type Tab = 'overview' | 'fundamentals' | 'ai'
+type Tab = 'overview' | 'technicals' | 'fundamentals' | 'ai'
 
 const fmt = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -99,6 +99,286 @@ const SUGGESTED_QUESTIONS = [
 
 const W = 500; const H = 120; const PAD = 8
 
+// ═══════════════════════════ Technical indicators ═══════════════════════════
+
+type Trend = 'up' | 'down' | 'flat'
+
+function computeSMA(prices: number[], period: number): number | null {
+  if (prices.length < period) return null
+  const slice = prices.slice(-period)
+  return slice.reduce((a, b) => a + b, 0) / period
+}
+
+function computeRSI(prices: number[], period = 14): number | null {
+  if (prices.length < period + 1) return null
+  let gains = 0, losses = 0
+  const slice = prices.slice(-(period + 1))
+  for (let i = 1; i < slice.length; i++) {
+    const diff = slice[i] - slice[i - 1]
+    if (diff >= 0) gains += diff; else losses -= diff
+  }
+  const avgGain = gains / period
+  const avgLoss = losses / period
+  if (avgLoss === 0) return 100
+  const rs = avgGain / avgLoss
+  return 100 - 100 / (1 + rs)
+}
+
+function computeVolatility(prices: number[]): number | null {
+  if (prices.length < 3) return null
+  const returns: number[] = []
+  for (let i = 1; i < prices.length; i++) returns.push((prices[i] - prices[i - 1]) / prices[i - 1])
+  const mean = returns.reduce((a, b) => a + b, 0) / returns.length
+  const variance = returns.reduce((a, b) => a + (b - mean) ** 2, 0) / returns.length
+  return Math.sqrt(variance) * 100
+}
+
+function rateRSI(v: number | null): Rating | null {
+  if (v == null) return null
+  if (v < 30) return 'good'
+  if (v > 70) return 'bad'
+  return 'neutral'
+}
+function rateVolatility(v: number | null): Rating | null {
+  if (v == null) return null
+  if (v < 1.5) return 'good'
+  if (v > 3.5) return 'bad'
+  return 'neutral'
+}
+function rateTrend(t: Trend | null): Rating | null {
+  if (t == null) return null
+  return t === 'up' ? 'good' : t === 'down' ? 'bad' : 'neutral'
+}
+function rateMomentum(pct: number): Rating {
+  if (pct > 5) return 'good'
+  if (pct < -5) return 'bad'
+  return 'neutral'
+}
+
+const RSI_LABEL: Record<Rating, string> = { good: 'Oversold', bad: 'Overbought', neutral: 'Neutral' }
+const VOL_LABEL: Record<Rating, string> = { good: 'Low', bad: 'High', neutral: 'Moderate' }
+const TREND_LABEL: Record<Rating, string> = { good: 'Uptrend', bad: 'Downtrend', neutral: 'Sideways' }
+const MOMENTUM_LABEL: Record<Rating, string> = { good: 'Strong', bad: 'Weak', neutral: 'Flat' }
+const GROWTH_LABEL: Record<Rating, string> = { good: '✓ Strong', bad: '⚠ Weak', neutral: '~ Okay' }
+const RISK_LABEL: Record<Rating, string> = { good: '✓ Low Risk', bad: '⚠ High Risk', neutral: '~ Moderate' }
+
+// ═══════════════════════════ Info modal library ═══════════════════════════
+
+type InfoContent = { title: string; what: string; context: string }
+
+function getMetricInfo(key: string, q: QuoteData, tech: {
+  trend: Trend | null; smaPeriod: number; sma: number | null
+  rsi: number | null; volatility: number | null; range52Pct: number
+}): InfoContent {
+  const t = q.ticker
+  switch (key) {
+    case 'pe': {
+      const v = q.pe
+      const r = rateMetric('pe', v)
+      return {
+        title: 'P/E Ratio (Price-to-Earnings)',
+        what: "The P/E ratio shows how much investors pay for every $1 of a company's annual profit. It's the share price divided by earnings per share. A high P/E usually means the market expects strong future growth (or the stock is pricey); a low P/E can mean a bargain — or that growth expectations are weak.",
+        context: v == null
+          ? `${t} doesn't have a reported P/E right now — common for companies with no profit yet, or for ETFs and index funds.`
+          : `${t} trades at a P/E of ${v.toFixed(1)}, which is ${r === 'good' ? 'on the cheaper side (under 15)' : r === 'bad' ? 'on the pricier side (over 30)' : 'in a fairly average range (15–30)'}. That means investors are paying $${v.toFixed(2)} for every $1 the company earns per year. ${r === 'bad' ? "A high P/E isn't automatically bad — it often reflects strong growth expectations — but it raises the bar for the company to deliver." : r === 'good' ? 'A lower P/E can mean a bargain, or it can mean the market expects slower growth ahead — worth digging into why.' : 'This is a fairly normal valuation for a stable, moderately-growing company.'}`,
+      }
+    }
+    case 'forwardPe': {
+      const v = q.forwardPe
+      const r = rateMetric('forwardPe', v)
+      return {
+        title: 'Forward P/E',
+        what: "Forward P/E uses analysts' estimate of next year's earnings instead of last year's. Comparing it to the regular (trailing) P/E tells you whether the market expects earnings to grow or shrink.",
+        context: v == null
+          ? `No forward P/E is available for ${t} right now.`
+          : `${t}'s forward P/E is ${v.toFixed(1)}. ${q.pe != null ? (v < q.pe ? `That's lower than its trailing P/E of ${q.pe.toFixed(1)}, meaning analysts expect earnings to grow.` : `That's higher than its trailing P/E of ${q.pe.toFixed(1)}, meaning analysts expect earnings to shrink or growth to slow.`) : ''} ${r === 'good' ? 'A low forward P/E suggests the stock could be undervalued relative to expected earnings.' : r === 'bad' ? 'A high forward P/E means a lot of future growth is already priced in.' : ''}`,
+      }
+    }
+    case 'eps': {
+      const v = q.eps
+      return {
+        title: 'EPS (Earnings Per Share)',
+        what: 'EPS is the company\'s total profit over the last 12 months divided by the number of shares outstanding. It tells you how much profit is attributable to a single share.',
+        context: v == null
+          ? `${t} doesn't report a trailing EPS right now.`
+          : `${t} earned $${v.toFixed(2)} per share over the last twelve months. ${v > 0 ? "That's positive — the company is profitable." : 'That\'s negative, meaning the company lost money over that period — common for early-stage growth companies, but worth watching.'}`,
+      }
+    }
+    case 'marketCap': {
+      const v = q.marketCap
+      return {
+        title: 'Market Capitalization',
+        what: "Market cap is a company's total value in the stock market — share price × total shares outstanding. It's the quickest way to gauge a company's size: mega-cap ($200B+), large-cap ($10B–$200B), mid-cap ($2B–$10B), small-cap (under $2B).",
+        context: v == null
+          ? `Market cap isn't available for ${t} right now.`
+          : `${t} has a market cap of ${fmtBig(v)}, making it ${v >= 2e11 ? 'a mega-cap company — one of the largest and most established in the market.' : v >= 1e10 ? 'a large-cap company — well-established with a long track record.' : v >= 2e9 ? 'a mid-cap company — past the early stage but still with real room to grow.' : 'a small-cap company — smaller and typically more volatile, with more growth potential but more risk.'}`,
+      }
+    }
+    case 'revenueGrowth': {
+      const v = q.revenueGrowth
+      const r = rateMetric('revenueGrowth', v)
+      return {
+        title: 'Revenue Growth (Year-over-Year)',
+        what: "This measures how much faster (or slower) the company's sales grew compared to a year ago. Consistent double-digit growth is a sign of a healthy, expanding business.",
+        context: v == null
+          ? `Revenue growth isn't available for ${t} right now.`
+          : `${t}'s revenue grew ${(v * 100).toFixed(1)}% year-over-year. ${r === 'good' ? "That's strong growth — well above the market average — a good sign demand for the company's products is increasing." : r === 'bad' ? "That's slow (or negative) growth, which could mean the business is maturing, facing more competition, or hitting headwinds." : "That's moderate, healthy growth — not explosive, but steady."}`,
+      }
+    }
+    case 'profitMargin': {
+      const v = q.profitMargin
+      const r = rateMetric('profitMargin', v)
+      return {
+        title: 'Profit Margin',
+        what: 'Profit margin is the percentage of every dollar in revenue the company keeps as actual profit after all expenses. Higher margins usually mean a more efficient, more defensible business.',
+        context: v == null
+          ? `Profit margin isn't available for ${t} right now.`
+          : `${t} keeps ${(v * 100).toFixed(1)}% of every dollar of revenue as profit. ${r === 'good' ? "That's a high margin — a sign of pricing power or an efficient cost structure." : r === 'bad' ? "That's a thin margin, meaning small changes in costs or pricing could meaningfully impact profits." : "That's a reasonably healthy margin for most industries."}`,
+      }
+    }
+    case 'dividendYield': {
+      const v = q.dividendYield
+      return {
+        title: 'Dividend Yield',
+        what: "Dividend yield is the annual dividend payment as a percentage of the stock's price. It's a way companies return cash directly to shareholders, separate from any price appreciation.",
+        context: v == null || v === 0
+          ? `${t} doesn't currently pay a dividend — common for growth-focused companies that reinvest profits back into the business instead.`
+          : `${t} pays a dividend yield of ${(v * 100).toFixed(2)}%. That means for every $1,000 invested, you'd receive roughly $${(v * 1000).toFixed(0)} per year in dividends, on top of any price change.`,
+      }
+    }
+    case 'beta': {
+      const v = q.beta
+      const r = rateMetric('beta', v)
+      return {
+        title: 'Beta (Volatility vs. the Market)',
+        what: "Beta measures how much a stock tends to move relative to the overall market (like the S&P 500). A beta of 1.0 means it moves in line with the market; above 1.0 means bigger swings in both directions; below 1.0 means smaller, steadier moves.",
+        context: v == null
+          ? `Beta isn't available for ${t} right now.`
+          : `${t} has a beta of ${v.toFixed(2)}. ${v > 1 ? `That means it tends to move about ${((v - 1) * 100).toFixed(0)}% more than the market — bigger gains in rallies, but bigger drops in downturns too.` : v < 0.8 ? "That means it tends to move less than the market — historically steadier, with smaller swings in either direction." : "That's close to the market average — roughly as volatile as a typical large stock."}`,
+      }
+    }
+    case 'debtToEquity': {
+      const v = q.debtToEquity
+      const r = rateMetric('debtToEquity', v)
+      return {
+        title: 'Debt-to-Equity Ratio',
+        what: "This compares how much a company owes (debt) to what shareholders actually own (equity). It's a core measure of financial risk — a heavily indebted company is more vulnerable if profits drop or interest rates rise.",
+        context: v == null
+          ? `Debt-to-equity isn't available for ${t} right now.`
+          : `${t} has a debt-to-equity ratio of ${v.toFixed(1)}. ${r === 'good' ? "That's a conservative, low-debt balance sheet — generally lower financial risk." : r === 'bad' ? "That's a high level of debt relative to equity, which can amplify both gains and losses and adds financial risk, especially if interest rates rise." : "That's a moderate, fairly typical amount of leverage for most industries."}`,
+      }
+    }
+    case 'trend': {
+      const r = rateTrend(tech.trend)
+      return {
+        title: 'Price Trend',
+        what: `This compares the current price to its ${tech.smaPeriod}-period moving average — the average closing price over the recent stretch of time shown on the chart. Price consistently above the average signals an uptrend; below signals a downtrend.`,
+        context: tech.sma == null
+          ? `Not enough price history in this range to calculate a reliable trend for ${t}. Try a longer time range.`
+          : `${t} is currently trading ${q.price > tech.sma ? 'above' : 'below'} its ${tech.smaPeriod}-period average of ${fmt(tech.sma)}. ${r === 'good' ? "That's a bullish sign — the stock has been in an uptrend over this period." : r === 'bad' ? "That's a bearish sign — the stock has been in a downtrend over this period." : "Price is hovering near its average — the stock is moving sideways without a clear trend."}`,
+      }
+    }
+    case 'momentum': {
+      const r = rateMomentum(q.rangeChangePct)
+      return {
+        title: 'Momentum',
+        what: "Momentum measures how strongly the price has moved over the selected time range. Strong positive momentum often (but not always) continues in the short term; strong negative momentum can signal a stock that's out of favor.",
+        context: `${t} has moved ${q.rangeChangePct >= 0 ? '+' : ''}${q.rangeChangePct.toFixed(1)}% over this period. ${r === 'good' ? "That's strong positive momentum — buying interest has clearly outweighed selling." : r === 'bad' ? "That's a notable decline — selling pressure has outweighed buying over this period." : "That's fairly flat — no strong directional momentum either way recently."}`,
+      }
+    }
+    case 'volatility': {
+      const r = rateVolatility(tech.volatility)
+      return {
+        title: 'Volatility',
+        what: "This measures how much the price has bounced around period-to-period, using the statistical spread (standard deviation) of returns. Higher volatility means bigger, more frequent price swings — more risk, but also more potential opportunity.",
+        context: tech.volatility == null
+          ? `Not enough price history to calculate volatility for ${t} in this range.`
+          : `${t}'s price has swung by an average of about ${tech.volatility.toFixed(1)}% per period recently. ${r === 'good' ? "That's relatively low volatility — a steadier ride than average." : r === 'bad' ? "That's high volatility — expect larger, more frequent price swings than a typical stock." : "That's a moderate, fairly typical level of price movement."}`,
+      }
+    }
+    case 'rsi': {
+      const r = rateRSI(tech.rsi)
+      return {
+        title: 'RSI (Relative Strength Index)',
+        what: "RSI is a 0–100 scale that measures how fast and how far a price has recently moved, based on the size of its gains vs. its losses. Above 70 is traditionally considered 'overbought' (may be due for a pullback); below 30 is 'oversold' (may be due for a bounce). It's a momentum signal, not a guarantee.",
+        context: tech.rsi == null
+          ? `Not enough recent price data to calculate RSI for ${t} in this range. Try a range with more data points.`
+          : `${t}'s RSI is currently ${tech.rsi.toFixed(0)}. ${r === 'bad' ? "That's in overbought territory — the stock has risen quickly and could be due for a pause or pullback." : r === 'good' ? "That's in oversold territory — the stock has fallen quickly, which some traders see as a potential rebound opportunity (though it can also mean the decline continues)." : "That's a neutral reading — no strong overbought or oversold signal right now."}`,
+      }
+    }
+    case 'range52': {
+      return {
+        title: '52-Week Range Position',
+        what: "This shows where the current price sits between its lowest and highest points over the past year — a quick way to see if a stock is trading near the top, bottom, or middle of its recent range.",
+        context: `${t} is at ${tech.range52Pct.toFixed(0)}% of its 52-week range (0% = the 52-week low, 100% = the 52-week high). ${tech.range52Pct > 85 ? "It's trading near its 52-week high — a sign of strong recent momentum, though it also means less room to run before hitting new highs." : tech.range52Pct < 15 ? "It's trading near its 52-week low — this can mean the stock is out of favor, or it can be a potential value opportunity. Worth investigating why." : "It's trading in the middle of its 52-week range — neither near a high nor a low."}`,
+      }
+    }
+    default:
+      return { title: '', what: '', context: '' }
+  }
+}
+
+// ═══════════════════════════ Shared UI pieces ═══════════════════════════
+
+function MetricCard({
+  label, value, rating, ratingLabels = RATING_LABEL, barPct, onInfo,
+}: {
+  label: string; value: string; rating: Rating | null
+  ratingLabels?: Record<Rating, string>; barPct?: number; onInfo: () => void
+}) {
+  const c = rating ? COLORS[rating] : null
+  return (
+    <div className="p-3 rounded-xl flex flex-col"
+      style={{ background: c ? c.bg : 'var(--surface)', border: `1px solid ${c ? c.border : 'var(--border)'}` }}>
+      <div className="flex items-start justify-between gap-1 mb-1">
+        <div className="text-xs font-bold" style={{ color: 'var(--muted)' }}>{label}</div>
+        {rating && c && (
+          <span className="text-xs font-bold px-1.5 py-0.5 rounded whitespace-nowrap"
+            style={{ background: c.bg, color: c.text, border: `1px solid ${c.border}` }}>
+            {ratingLabels[rating]}
+          </span>
+        )}
+      </div>
+      <div className="text-xl font-black" style={{ color: c ? c.text : 'var(--foreground)' }}>{value}</div>
+      {barPct != null && barPct > 0 && (
+        <div style={{ height: 4, background: 'var(--border)', borderRadius: 2, marginTop: 6, marginBottom: 2, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: '100%', background: c ? c.text : 'var(--accent)', borderRadius: 2, transform: `scaleX(${Math.min(100, barPct) / 100})`, transformOrigin: 'left', transition: 'transform 0.6s ease' }} />
+        </div>
+      )}
+      <button onClick={onInfo}
+        className="text-xs font-bold flex items-center gap-1 mt-2 self-start"
+        style={{ color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+        ⓘ In depth
+      </button>
+    </div>
+  )
+}
+
+function InfoModal({ info, onClose }: { info: InfoContent; onClose: () => void }) {
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(10,26,47,0.55)', zIndex: 1000,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: 'var(--surface)', borderRadius: 16, maxWidth: 440, width: '100%',
+        maxHeight: '80vh', overflowY: 'auto', padding: 24,
+        border: '1px solid var(--border)', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+      }}>
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="font-black text-lg" style={{ letterSpacing: '-0.02em' }}>{info.title}</div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: 'var(--muted)', lineHeight: 1, flexShrink: 0 }}>✕</button>
+        </div>
+        <div className="text-sm leading-relaxed mb-4" style={{ color: 'var(--foreground-secondary)' }}>{info.what}</div>
+        <div className="rounded-xl p-3.5 text-sm leading-relaxed" style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
+          <div className="text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--accent)' }}>For this stock, right now</div>
+          {info.context}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function StockResearcher() {
   const [tickerInput, setTickerInput] = useState('')
   const [quote, setQuote] = useState<QuoteData | null>(null)
@@ -107,6 +387,7 @@ export function StockResearcher() {
   const [range, setRange] = useState('1M')
   const [tab, setTab] = useState<Tab>('overview')
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
+  const [activeInfo, setActiveInfo] = useState<string | null>(null)
   const svgRef = useRef<SVGSVGElement>(null)
 
   // AI state
@@ -115,6 +396,13 @@ export function StockResearcher() {
   const [qaHistory, setQaHistory] = useState<QA[]>([])
   const [customQ, setCustomQ] = useState('')
   const [askingQ, setAskingQ] = useState(false)
+
+  useEffect(() => {
+    if (!activeInfo) return
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setActiveInfo(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [activeInfo])
 
   async function search() {
     const t = tickerInput.trim().toUpperCase()
@@ -184,6 +472,11 @@ export function StockResearcher() {
     setAskingQ(false)
   }
 
+  function askInAiTab(q: string) {
+    setTab('ai')
+    askQuestion(q)
+  }
+
   // Chart calculations
   const prices = (quote?.history ?? []).map(h => h.price).filter(p => p != null) as number[]
   const minP = prices.length ? Math.min(...prices) : 0
@@ -218,11 +511,24 @@ export function StockResearcher() {
 
   const analysisSections = analysis ? parseAnalysisSections(analysis) : []
 
+  // Technical indicators (computed from whatever price history is loaded)
+  const smaPeriod = Math.min(20, Math.max(3, Math.floor(prices.length / 2)))
+  const sma = computeSMA(prices, smaPeriod)
+  const trend: Trend | null = sma == null || !quote ? null
+    : quote.price > sma * 1.01 ? 'up' : quote.price < sma * 0.99 ? 'down' : 'flat'
+  const rsi = computeRSI(prices, 14)
+  const volatility = computeVolatility(prices)
+  const tech = { trend, smaPeriod, sma, rsi, volatility, range52Pct }
+
+  const infoModal = activeInfo && quote ? getMetricInfo(activeInfo, quote, tech) : null
+
   return (
     <div className="card flex flex-col gap-0 overflow-hidden" style={{ padding: 0 }}>
 
+      {infoModal && <InfoModal info={infoModal} onClose={() => setActiveInfo(null)} />}
+
       {/* ── Header ── */}
-      <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: '1px solid var(--card-border)' }}>
+      <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
         <span style={{ fontSize: 18 }}>📈</span>
         <span className="font-bold text-base flex-1">Stock Researcher</span>
         {quote && (
@@ -256,7 +562,7 @@ export function StockResearcher() {
 
         {/* ── Ticker + Price ── */}
         <div className="px-4 pb-4 flex items-end justify-between flex-wrap gap-2"
-          style={{ borderBottom: '1px solid var(--card-border)' }}>
+          style={{ borderBottom: '1px solid var(--border)' }}>
           <div>
             <div style={{ fontSize: 24, fontWeight: 900, letterSpacing: '-0.5px', lineHeight: 1.1 }}>{quote.ticker}</div>
             <div className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>{quote.name}</div>
@@ -270,7 +576,7 @@ export function StockResearcher() {
                 )}
                 {quote.industry && (
                   <span className="text-xs px-2 py-0.5 rounded-full"
-                    style={{ background: 'var(--background)', color: 'var(--muted)', border: '1px solid var(--card-border)' }}>
+                    style={{ background: 'var(--background)', color: 'var(--muted)', border: '1px solid var(--border)' }}>
                     {quote.industry}
                   </span>
                 )}
@@ -286,9 +592,10 @@ export function StockResearcher() {
         </div>
 
         {/* ── Tabs ── */}
-        <div className="flex" style={{ borderBottom: '1px solid var(--card-border)' }}>
+        <div className="flex" style={{ borderBottom: '1px solid var(--border)' }}>
           {([
             ['overview', '📊 Overview'],
+            ['technicals', '📈 Technicals'],
             ['fundamentals', '📋 Fundamentals'],
             ['ai', '🤖 AI Research'],
           ] as [Tab, string][]).map(([t, label]) => (
@@ -319,7 +626,7 @@ export function StockResearcher() {
                     style={{
                       background: range === r ? 'var(--accent)' : 'var(--background)',
                       color: range === r ? 'white' : 'var(--muted)',
-                      border: `1px solid ${range === r ? 'var(--accent)' : 'var(--card-border)'}`,
+                      border: `1px solid ${range === r ? 'var(--accent)' : 'var(--border)'}`,
                       cursor: 'pointer',
                     }}>
                     {r}
@@ -339,7 +646,7 @@ export function StockResearcher() {
               <div style={{ background: 'var(--background)', borderRadius: 12, padding: '8px 4px 4px', position: 'relative', overflow: 'hidden' }}>
                 {hoverPt && (
                   <div className="absolute top-2 left-3 text-xs font-bold px-2 py-1 rounded-lg pointer-events-none"
-                    style={{ background: 'var(--card)', border: '1px solid var(--card-border)', zIndex: 10 }}>
+                    style={{ background: 'var(--surface)', border: '1px solid var(--border)', zIndex: 10 }}>
                     {fmt(hoverPt.price)} · {hoverPt.date}
                   </div>
                 )}
@@ -395,7 +702,7 @@ export function StockResearcher() {
                 { label: 'From Low', value: `+${(((quote.price - quote.low52) / quote.low52) * 100).toFixed(1)}%` },
               ].map(s => (
                 <div key={s.label} className="p-3 rounded-xl text-center"
-                  style={{ background: 'var(--background)', border: '1px solid var(--card-border)' }}>
+                  style={{ background: 'var(--background)', border: '1px solid var(--border)' }}>
                   <div className="text-sm font-bold">{s.value}</div>
                   <div className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{s.label}</div>
                 </div>
@@ -411,6 +718,68 @@ export function StockResearcher() {
 
           </>)}
 
+          {/* ════════════ TECHNICALS ════════════ */}
+          {tab === 'technicals' && (<>
+
+            <div>
+              <div className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: 'var(--accent)' }}>
+                Trend & Momentum
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <MetricCard
+                  label="Price Trend"
+                  value={trend ? TREND_LABEL[rateTrend(trend)!] : 'N/A'}
+                  rating={rateTrend(trend)}
+                  ratingLabels={TREND_LABEL}
+                  onInfo={() => setActiveInfo('trend')}
+                />
+                <MetricCard
+                  label={`Momentum (${range})`}
+                  value={`${quote.rangeChangePct >= 0 ? '+' : ''}${quote.rangeChangePct.toFixed(1)}%`}
+                  rating={rateMomentum(quote.rangeChangePct)}
+                  ratingLabels={MOMENTUM_LABEL}
+                  onInfo={() => setActiveInfo('momentum')}
+                />
+                <MetricCard
+                  label="RSI (14)"
+                  value={rsi != null ? rsi.toFixed(0) : 'N/A'}
+                  rating={rateRSI(rsi)}
+                  ratingLabels={RSI_LABEL}
+                  onInfo={() => setActiveInfo('rsi')}
+                />
+                <MetricCard
+                  label="Volatility"
+                  value={volatility != null ? `${volatility.toFixed(1)}%` : 'N/A'}
+                  rating={rateVolatility(volatility)}
+                  ratingLabels={VOL_LABEL}
+                  onInfo={() => setActiveInfo('volatility')}
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: 'var(--accent)' }}>
+                Range Position
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                <MetricCard
+                  label="52-Week Range Position"
+                  value={`${range52Pct.toFixed(0)}%`}
+                  rating={range52Pct > 85 ? 'bad' : range52Pct < 15 ? 'good' : 'neutral'}
+                  ratingLabels={{ good: 'Near Low', bad: 'Near High', neutral: 'Mid-Range' }}
+                  onInfo={() => setActiveInfo('range52')}
+                />
+              </div>
+            </div>
+
+            <button className="w-full py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2"
+              style={{ background: 'rgba(91,106,240,0.08)', border: '1px solid rgba(91,106,240,0.2)', color: 'var(--accent)', cursor: 'pointer' }}
+              onClick={() => askInAiTab(`Give me an in-depth technical analysis of ${quote.ticker}'s recent chart — the trend, momentum, RSI, and volatility — and what it suggests for short-term direction. Explain it for a beginner.`)}>
+              🔬 Ask AI to Explain This Chart →
+            </button>
+
+          </>)}
+
           {/* ════════════ FUNDAMENTALS ════════════ */}
           {tab === 'fundamentals' && (<>
 
@@ -421,33 +790,18 @@ export function StockResearcher() {
                   Valuation
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  {([
-                    quote.pe != null && { key: 'pe', label: 'P/E Ratio (TTM)', raw: quote.pe, value: quote.pe.toFixed(1), hint: 'How much investors pay per $1 of earnings. Under 15 = cheap, over 30 = expensive.' },
-                    quote.forwardPe != null && { key: 'forwardPe', label: 'Forward P/E', raw: quote.forwardPe, value: quote.forwardPe.toFixed(1), hint: "P/E based on next year's expected earnings. Lower = analysts expect growth." },
-                    quote.eps != null && { key: 'eps', label: 'EPS (TTM)', raw: null, value: `$${quote.eps.toFixed(2)}`, hint: 'Profit per share over last 12 months. Positive = profitable company.' },
-                    quote.marketCap != null && { key: 'marketCap', label: 'Market Cap', raw: null, value: fmtBig(quote.marketCap), hint: 'Total company value = shares × price. Mega-cap is $200B+.' },
-                  ] as ({ key: string; label: string; raw: number | null; value: string; hint: string } | false)[])
-                    .filter((x): x is { key: string; label: string; raw: number | null; value: string; hint: string } => !!x)
-                    .map(s => {
-                      const rating = rateMetric(s.key, s.raw)
-                      const c = rating ? COLORS[rating] : null
-                      return (
-                        <div key={s.label} className="p-3 rounded-xl"
-                          style={{ background: c ? c.bg : 'var(--background)', border: `1px solid ${c ? c.border : 'var(--card-border)'}` }}>
-                          <div className="flex items-start justify-between gap-1 mb-1">
-                            <div className="text-xs font-bold" style={{ color: 'var(--muted)' }}>{s.label}</div>
-                            {rating && c && (
-                              <span className="text-xs font-bold px-1.5 py-0.5 rounded whitespace-nowrap"
-                                style={{ background: c.bg, color: c.text, border: `1px solid ${c.border}` }}>
-                                {RATING_LABEL[rating]}
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-xl font-black mb-1" style={{ color: c ? c.text : 'var(--foreground)' }}>{s.value}</div>
-                          <div className="text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>{s.hint}</div>
-                        </div>
-                      )
-                    })}
+                  {quote.pe != null && (
+                    <MetricCard label="P/E Ratio (TTM)" value={quote.pe.toFixed(1)} rating={rateMetric('pe', quote.pe)} onInfo={() => setActiveInfo('pe')} />
+                  )}
+                  {quote.forwardPe != null && (
+                    <MetricCard label="Forward P/E" value={quote.forwardPe.toFixed(1)} rating={rateMetric('forwardPe', quote.forwardPe)} onInfo={() => setActiveInfo('forwardPe')} />
+                  )}
+                  {quote.eps != null && (
+                    <MetricCard label="EPS (TTM)" value={`$${quote.eps.toFixed(2)}`} rating={null} onInfo={() => setActiveInfo('eps')} />
+                  )}
+                  {quote.marketCap != null && (
+                    <MetricCard label="Market Cap" value={fmtBig(quote.marketCap)} rating={null} onInfo={() => setActiveInfo('marketCap')} />
+                  )}
                 </div>
               </div>
             )}
@@ -459,37 +813,17 @@ export function StockResearcher() {
                   Profitability & Growth
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  {([
-                    quote.revenueGrowth != null && { key: 'revenueGrowth', label: 'Revenue Growth', raw: quote.revenueGrowth, value: fmtPct(quote.revenueGrowth, true), barPct: Math.min(100, Math.max(0, quote.revenueGrowth * 100 * 2.5)), hint: 'How fast sales grew year-over-year. >20% is strong growth.' },
-                    quote.profitMargin != null && { key: 'profitMargin', label: 'Profit Margin', raw: quote.profitMargin, value: fmtPct(quote.profitMargin, true), barPct: Math.min(100, Math.max(0, quote.profitMargin * 100 * 2)), hint: '% of revenue kept as profit. Higher = more efficient business.' },
-                    quote.dividendYield != null && { key: 'dividendYield', label: 'Dividend Yield', raw: null, value: fmtPct(quote.dividendYield, true), barPct: 0, hint: 'Annual dividend paid as % of stock price. Passive income for shareholders.' },
-                  ] as ({ key: string; label: string; raw: number | null; value: string; barPct: number; hint: string } | false)[])
-                    .filter((x): x is { key: string; label: string; raw: number | null; value: string; barPct: number; hint: string } => !!x)
-                    .map(s => {
-                      const rating = rateMetric(s.key, s.raw)
-                      const c = rating ? COLORS[rating] : null
-                      return (
-                        <div key={s.label} className="p-3 rounded-xl"
-                          style={{ background: c ? c.bg : 'var(--background)', border: `1px solid ${c ? c.border : 'var(--card-border)'}` }}>
-                          <div className="flex items-start justify-between gap-1 mb-1">
-                            <div className="text-xs font-bold" style={{ color: 'var(--muted)' }}>{s.label}</div>
-                            {rating && c && (
-                              <span className="text-xs font-bold px-1.5 py-0.5 rounded whitespace-nowrap"
-                                style={{ background: c.bg, color: c.text, border: `1px solid ${c.border}` }}>
-                                {rating === 'good' ? '✓ Strong' : rating === 'bad' ? '⚠ Weak' : '~ Okay'}
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-xl font-black mb-1.5" style={{ color: c ? c.text : 'var(--foreground)' }}>{s.value}</div>
-                          {s.barPct > 0 && (
-                            <div style={{ height: 4, background: 'var(--card-border)', borderRadius: 2, marginBottom: 6, overflow: 'hidden' }}>
-                              <div style={{ height: '100%', width: '100%', background: c ? c.text : 'var(--accent)', borderRadius: 2, transform: `scaleX(${s.barPct / 100})`, transformOrigin: 'left', transition: 'transform 0.6s ease' }} />
-                            </div>
-                          )}
-                          <div className="text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>{s.hint}</div>
-                        </div>
-                      )
-                    })}
+                  {quote.revenueGrowth != null && (
+                    <MetricCard label="Revenue Growth" value={fmtPct(quote.revenueGrowth, true)} rating={rateMetric('revenueGrowth', quote.revenueGrowth)}
+                      ratingLabels={GROWTH_LABEL} barPct={Math.min(100, Math.max(0, quote.revenueGrowth * 100 * 2.5))} onInfo={() => setActiveInfo('revenueGrowth')} />
+                  )}
+                  {quote.profitMargin != null && (
+                    <MetricCard label="Profit Margin" value={fmtPct(quote.profitMargin, true)} rating={rateMetric('profitMargin', quote.profitMargin)}
+                      ratingLabels={GROWTH_LABEL} barPct={Math.min(100, Math.max(0, quote.profitMargin * 100 * 2))} onInfo={() => setActiveInfo('profitMargin')} />
+                  )}
+                  {quote.dividendYield != null && (
+                    <MetricCard label="Dividend Yield" value={fmtPct(quote.dividendYield, true)} rating={null} onInfo={() => setActiveInfo('dividendYield')} />
+                  )}
                 </div>
               </div>
             )}
@@ -501,31 +835,12 @@ export function StockResearcher() {
                   Risk Factors
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  {([
-                    quote.beta != null && { key: 'beta', label: 'Beta', raw: quote.beta, value: quote.beta.toFixed(2), hint: `${quote.beta > 1 ? `Moves ${((quote.beta - 1) * 100).toFixed(0)}% more than the market — higher risk & reward.` : quote.beta < 0.8 ? 'Moves less than the market — lower volatility.' : 'Close to market average volatility.'}` },
-                    quote.debtToEquity != null && { key: 'debtToEquity', label: 'Debt / Equity', raw: quote.debtToEquity, value: quote.debtToEquity.toFixed(1), hint: 'Debt relative to shareholder equity. Under 100 is generally healthy for most industries.' },
-                  ] as ({ key: string; label: string; raw: number | null; value: string; hint: string } | false)[])
-                    .filter((x): x is { key: string; label: string; raw: number | null; value: string; hint: string } => !!x)
-                    .map(s => {
-                      const rating = rateMetric(s.key, s.raw)
-                      const c = rating ? COLORS[rating] : null
-                      return (
-                        <div key={s.label} className="p-3 rounded-xl"
-                          style={{ background: c ? c.bg : 'var(--background)', border: `1px solid ${c ? c.border : 'var(--card-border)'}` }}>
-                          <div className="flex items-start justify-between gap-1 mb-1">
-                            <div className="text-xs font-bold" style={{ color: 'var(--muted)' }}>{s.label}</div>
-                            {rating && c && (
-                              <span className="text-xs font-bold px-1.5 py-0.5 rounded whitespace-nowrap"
-                                style={{ background: c.bg, color: c.text, border: `1px solid ${c.border}` }}>
-                                {rating === 'good' ? '✓ Low Risk' : rating === 'bad' ? '⚠ High Risk' : '~ Moderate'}
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-xl font-black mb-1" style={{ color: c ? c.text : 'var(--foreground)' }}>{s.value}</div>
-                          <div className="text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>{s.hint}</div>
-                        </div>
-                      )
-                    })}
+                  {quote.beta != null && (
+                    <MetricCard label="Beta" value={quote.beta.toFixed(2)} rating={rateMetric('beta', quote.beta)} ratingLabels={RISK_LABEL} onInfo={() => setActiveInfo('beta')} />
+                  )}
+                  {quote.debtToEquity != null && (
+                    <MetricCard label="Debt / Equity" value={quote.debtToEquity.toFixed(1)} rating={rateMetric('debtToEquity', quote.debtToEquity)} ratingLabels={RISK_LABEL} onInfo={() => setActiveInfo('debtToEquity')} />
+                  )}
                 </div>
               </div>
             )}
@@ -577,7 +892,7 @@ export function StockResearcher() {
                 </div>
                 {analysisSections.map((sec, i) => (
                   <div key={i} className="rounded-xl p-3.5"
-                    style={{ background: i === 0 ? 'rgba(91,106,240,0.06)' : 'var(--background)', border: '1px solid var(--card-border)' }}>
+                    style={{ background: i === 0 ? 'rgba(91,106,240,0.06)' : 'var(--background)', border: '1px solid var(--border)' }}>
                     {sec.header && <div className="text-sm font-bold mb-2">{sec.header}</div>}
                     <div className="text-sm leading-relaxed" style={{ color: 'var(--foreground)', whiteSpace: 'pre-wrap' }}>
                       {parseMarkdown(sec.body.trim())}
@@ -588,7 +903,7 @@ export function StockResearcher() {
             )}
 
             {/* Divider */}
-            <div style={{ height: 1, background: 'var(--card-border)' }} />
+            <div style={{ height: 1, background: 'var(--border)' }} />
 
             {/* Q&A section */}
             <div>
@@ -602,7 +917,7 @@ export function StockResearcher() {
                   <button key={q} onClick={() => askQuestion(q)} disabled={askingQ}
                     className="text-xs px-3 py-1.5 rounded-full font-semibold transition-all"
                     style={{
-                      background: 'var(--background)', border: '1px solid var(--card-border)',
+                      background: 'var(--background)', border: '1px solid var(--border)',
                       color: 'var(--foreground)', cursor: askingQ ? 'not-allowed' : 'pointer',
                       opacity: askingQ ? 0.5 : 1,
                     }}>
@@ -641,13 +956,13 @@ export function StockResearcher() {
                     {/* AI bubble */}
                     {qa.loading ? (
                       <div className="flex items-center gap-2 px-3 py-2.5 rounded-2xl rounded-tl-sm"
-                        style={{ background: 'var(--background)', border: '1px solid var(--card-border)', width: 'fit-content' }}>
+                        style={{ background: 'var(--background)', border: '1px solid var(--border)', width: 'fit-content' }}>
                         <span style={{ width: 12, height: 12, border: '2px solid var(--accent)', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
                         <span className="text-xs" style={{ color: 'var(--muted)' }}>Thinking…</span>
                       </div>
                     ) : (
                       <div className="text-sm leading-relaxed px-3 py-2.5 rounded-2xl rounded-tl-sm"
-                        style={{ background: 'var(--background)', border: '1px solid var(--card-border)', whiteSpace: 'pre-wrap' }}>
+                        style={{ background: 'var(--background)', border: '1px solid var(--border)', whiteSpace: 'pre-wrap' }}>
                         {parseMarkdown(qa.a)}
                       </div>
                     )}

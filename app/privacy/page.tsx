@@ -46,7 +46,7 @@ export default function PrivacyPage() {
         </Section>
 
         <Section title="Information We Collect">
-          <P><strong>Account information:</strong> When you create an account, we collect your email address and a hashed password. We do not collect your real name, phone number, home address, or any government-issued ID.</P>
+          <P><strong>Account information:</strong> When you create an account, we collect your email address, a hashed password, and your first name (so you can be greeted by name and so teachers can identify you on a class roster). We do not collect your last name, phone number, home address, or any government-issued ID.</P>
           <P><strong>Financial data you enter:</strong> Nexus stores the financial information you voluntarily enter, including:</P>
           <UL items={[
             'Budget categories and monthly spending entries',

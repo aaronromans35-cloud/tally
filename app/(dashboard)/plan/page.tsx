@@ -495,9 +495,9 @@ export default function PlanPage() {
               </div>
 
               <div>
-                <p className="text-xs mb-1" style={{ color: 'var(--muted)' }}>Full Name</p>
+                <p className="text-xs mb-1" style={{ color: 'var(--muted)' }}>First Name</p>
                 <input className="input text-sm" value={f.full_name ?? ''}
-                  onChange={e => setProfileEdit(p => ({ ...p, full_name: e.target.value }))} placeholder="Your name" />
+                  onChange={e => setProfileEdit(p => ({ ...p, full_name: e.target.value }))} placeholder="Your first name" />
               </div>
             </div>
             <p className="text-xs mt-3" style={{ color: 'var(--muted)' }}>

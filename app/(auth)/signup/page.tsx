@@ -179,8 +179,8 @@ export default function SignupPage() {
 
               <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                 <div>
-                  <label className="label">Full name</label>
-                  <input className="input" type="text" value={form.name} onChange={set('name')} required placeholder="Jane Smith" />
+                  <label className="label">First name</label>
+                  <input className="input" type="text" value={form.name} onChange={set('name')} required placeholder="Jordan" />
                 </div>
                 <div>
                   <label className="label">Email address</label>

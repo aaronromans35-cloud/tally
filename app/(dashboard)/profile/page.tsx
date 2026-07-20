@@ -82,8 +82,8 @@ export default function ProfilePage() {
               <div className="input" style={{ opacity: 0.6, cursor: 'not-allowed' }}>{email}</div>
             </div>
             <div>
-              <label className="label">Full Name</label>
-              <input className="input" value={profile.full_name} onChange={set('full_name')} placeholder="Jane Smith" />
+              <label className="label">First Name</label>
+              <input className="input" value={profile.full_name} onChange={set('full_name')} placeholder="Jordan" />
             </div>
           </div>
         </div>

@@ -17,13 +17,29 @@ export default function LoginPage() {
     setError('')
 
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const timeout = new Promise<{ error: { message: string } }>((resolve) =>
+      setTimeout(() => resolve({ error: { message: 'timeout' } }), 12_000)
+    )
 
-    if (error) {
-      setError('Invalid email or password')
+    try {
+      const { error } = await Promise.race([
+        supabase.auth.signInWithPassword({ email, password }),
+        timeout,
+      ])
+
+      if (error) {
+        setError(
+          error.message === 'timeout'
+            ? 'Sign in is taking longer than expected. Check your connection and try again.'
+            : 'Invalid email or password'
+        )
+        setLoading(false)
+      } else {
+        window.location.href = '/dashboard'
+      }
+    } catch {
+      setError('Something went wrong. Please try again.')
       setLoading(false)
-    } else {
-      window.location.href = '/dashboard'
     }
   }
 

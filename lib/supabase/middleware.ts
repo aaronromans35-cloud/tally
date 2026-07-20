@@ -30,11 +30,14 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // If Supabase is unreachable (paused project, network issue), fail open
-  // so the app still loads rather than crashing everything
+  // If Supabase is unreachable or slow (paused project, network issue), fail open
+  // so the app still loads rather than hanging or crashing everything
   let user = null
   try {
-    const { data } = await supabase.auth.getUser()
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 8_000)
+    )
+    const { data } = await Promise.race([supabase.auth.getUser(), timeout])
     user = data.user
   } catch {
     return supabaseResponse

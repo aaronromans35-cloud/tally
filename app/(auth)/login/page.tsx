@@ -28,10 +28,15 @@ export default function LoginPage() {
       ])
 
       if (error) {
+        const msg = error.message?.toLowerCase() ?? ''
         setError(
           error.message === 'timeout'
             ? 'Sign in is taking longer than expected. Check your connection and try again.'
-            : 'Invalid email or password'
+            : msg.includes('email not confirmed') || msg.includes('not confirmed')
+            ? 'Please confirm your email first — check your inbox for a link from Supabase and click it, then try signing in again.'
+            : msg.includes('invalid login') || msg.includes('invalid credentials') || msg.includes('invalid email or password')
+            ? 'Invalid email or password. Double-check and try again.'
+            : error.message || 'Something went wrong. Please try again.'
         )
         setLoading(false)
       } else {

@@ -18,8 +18,9 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      // Next.js needs unsafe-inline for its injected scripts; unsafe-eval for dev HMR
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      // Next.js needs unsafe-inline for its injected scripts; unsafe-eval for dev HMR.
+      // cdn.plaid.com serves link-initialize.js, which Plaid Link requires.
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.plaid.com",
       // Inline styles used throughout (style={{ }} props)
       "style-src 'self' 'unsafe-inline'",
       // Images: self + data URIs for SVG/chart gradients
@@ -32,7 +33,11 @@ const securityHeaders = [
         'wss://*.supabase.co',
         'https://query1.finance.yahoo.com',
         'https://query2.finance.yahoo.com',
+        // Plaid Link posts events + fetches config while the modal is open
+        'https://*.plaid.com',
       ].join(' '),
+      // Plaid Link renders its bank-login UI inside an iframe it injects
+      "frame-src 'self' https://*.plaid.com",
       // Block embedding this app in any iframe
       "frame-ancestors 'none'",
       // Only allow forms to submit to same origin
@@ -45,8 +50,10 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   devIndicators: false,
-  typescript: { ignoreBuildErrors: true },
-  eslint: { ignoreDuringBuilds: true },
+  // Type errors fail the build on purpose. This app handles money and minors'
+  // data; a green build should mean something. (Next 16 dropped the `eslint`
+  // config key — linting runs via the ESLint CLI in `npm run lint`.)
+  typescript: { ignoreBuildErrors: false },
   async headers() {
     return [
       {

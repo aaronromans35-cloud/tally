@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #e7e5dc; }
+  * { box-sizing: border-box; }
+  a { color: #1c6a48; text-decoration: none; }
+  ::selection { background: #cdf06a; }
+</style>
+</helmet>
+<div style="background:#e7e5dc;color:#14140f;font-family:'IBM Plex Sans',system-ui,sans-serif;padding:52px 44px 96px">
+  <div style="max-width:1560px;margin:0 auto">
+
+    <header style="margin-bottom:20px;max-width:46em">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#6b6a60;margin-bottom:16px">Social · launch campaign v2</div>
+      <h1 style="font-family:'Space Grotesk',sans-serif;font-size:48px;line-height:1.03;letter-spacing:-0.035em;font-weight:700;margin:0 0 14px">Five posts, built for saves and sends</h1>
+      <p style="font-size:17px;line-height:1.6;color:#4a4941;margin:0">All frames are 1080×1350 (4:5 portrait — the ratio the algorithm favors), shown here at 32%.</p>
+    </header>
+
+    <div style="background:#14140f;color:#f5f4ef;border-radius:24px;padding:28px 32px;margin-bottom:34px">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#a8a69b;margin-bottom:18px">The rules this campaign follows</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:26px">
+        <sc-for list="{{ rules }}" as="r" hint-placeholder-count="4">
+          <div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;letter-spacing:-0.02em;color:#cdf06a;margin-bottom:7px">{{ r.title }}</div>
+            <div style="font-size:14px;line-height:1.5;color:#b6b4a8">{{ r.body }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:34px">
+      <sc-for list="{{ posts }}" as="p" hint-placeholder-count="5">
+        <section style="background:#f5f4ef;border:1px solid #d8d5ca;border-radius:26px;padding:32px">
+          <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:8px">
+            <span style="{{ p.badgeStyle }}">{{ p.badge }}</span>
+            <span style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;letter-spacing:-0.02em">{{ p.name }}</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#6b6a60">{{ p.goal }}</span>
+          </div>
+          <div style="font-size:15px;color:#4a4941;margin-bottom:22px;max-width:52em">{{ p.why }}</div>
+
+          <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:24px">
+            <sc-for list="{{ p.frames }}" as="f" hint-placeholder-count="4">
+              <div style="width:346px;height:432px;overflow:hidden;border-radius:14px;flex:none;position:relative;box-shadow:0 0 0 1px #d3d0c5">
+                <div style="{{ f.canvas }}">
+                  <div style="{{ f.kickerStyle }}">{{ f.kicker }}</div>
+                  <div style="{{ f.headStyle }}">{{ f.head }}</div>
+                  <div style="{{ f.bodyStyle }}">{{ f.body }}</div>
+                  <sc-if value="{{ f.hasList }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;flex-direction:column;gap:0;margin-top:44px">
+                      <sc-for list="{{ f.list }}" as="li" hint-placeholder-count="4">
+                        <div style="{{ li.rowStyle }}">
+                          <span style="{{ li.leftStyle }}">{{ li.left }}</span>
+                          <span style="{{ li.rightStyle }}">{{ li.right }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ f.hasBars }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;align-items:flex-end;gap:18px;height:300px;margin-top:56px">
+                      <sc-for list="{{ f.bars }}" as="b" hint-placeholder-count="5">
+                        <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;gap:16px">
+                          <div style="{{ b.bar }}"></div>
+                          <div style="{{ b.labelStyle }}">{{ b.label }}</div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                  <div style="{{ f.footStyle }}">{{ f.foot }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:18px">
+            <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:18px;padding:24px 26px">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#6b6a60;margin-bottom:12px">Caption</div>
+              <p style="font-size:16px;line-height:1.65;margin:0 0 14px;white-space:pre-line">{{ p.caption }}</p>
+              <div style="font-size:15px;font-weight:600;color:#1c6a48;margin-bottom:12px">{{ p.cta }}</div>
+              <p style="font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1.7;margin:0;color:#6b6a60">{{ p.tags }}</p>
+            </div>
+            <div style="background:#e6e3d8;border-radius:18px;padding:24px 26px">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#4a4941;margin-bottom:14px">Why it should work</div>
+              <div style="display:flex;flex-direction:column;gap:11px">
+                <sc-for list="{{ p.notes }}" as="n" hint-placeholder-count="3">
+                  <div style="display:flex;gap:10px;font-size:14px;line-height:1.5;color:#14140f">
+                    <span style="color:#1c6a48;font-weight:700;flex:none">→</span>
+                    <span>{{ n }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </section>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1660,&quot;height&quot;:1200}}">
+class Component extends DCLogic {
+  frame(o) {
+    const themes = {
+      dark: { bg: '#14140f', fg: '#f5f4ef', muted: '#a8a69b', accent: '#cdf06a' },
+      light: { bg: '#f5f4ef', fg: '#14140f', muted: '#6b6a60', accent: '#1c6a48' },
+      lime: { bg: '#cdf06a', fg: '#14140f', muted: '#3d5410', accent: '#14140f' },
+      green: { bg: '#1c6a48', fg: '#f7fbf6', muted: '#c8e2d3', accent: '#cdf06a' },
+      white: { bg: '#ffffff', fg: '#14140f', muted: '#6b6a60', accent: '#1c6a48' }
+    };
+    const t = themes[o.theme || 'light'];
+    return {
+      canvas: 'width:1080px;height:1350px;transform:scale(0.32);transform-origin:top left;padding:' + (o.pad || '110px 90px') + ';display:flex;flex-direction:column;justify-content:' + (o.justify || 'center') + ';background:' + t.bg + ';color:' + t.fg,
+      kicker: o.kicker || '',
+      kickerStyle: o.kicker ? 'font-family:\'IBM Plex Mono\',monospace;font-size:34px;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:40px;color:' + (o.theme === 'lime' ? '#3d5410' : t.accent) : 'display:none',
+      head: o.head || '',
+      headStyle: o.head ? 'font-family:\'Space Grotesk\',sans-serif;font-size:' + (o.headSize || 116) + 'px;line-height:0.94;letter-spacing:-0.045em;font-weight:700;margin-bottom:' + (o.body ? '38px' : '0') : 'display:none',
+      body: o.body || '',
+      bodyStyle: o.body ? 'font-size:' + (o.bodySize || 46) + 'px;line-height:1.4;color:' + t.muted : 'display:none',
+      hasList: !!o.list, list: (o.list || []).map((r, i) => ({
+        left: r[0], right: r[1],
+        rowStyle: 'display:flex;justify-content:space-between;align-items:baseline;gap:24px;padding:30px 0;border-bottom:3px solid ' + (o.theme === 'lime' ? 'rgba(20,20,15,0.18)' : o.theme === 'dark' ? '#2c2c24' : '#e0ded4'),
+        leftStyle: 'font-size:46px',
+        rightStyle: 'font-family:\'Space Grotesk\',sans-serif;font-size:52px;font-weight:700;letter-spacing:-0.03em;color:' + (r[2] ? (o.theme === 'dark' || o.theme === 'green' ? '#cdf06a' : '#1c6a48') : t.fg)
+      })),
+      hasBars: !!o.bars, bars: (o.bars || []).map(b => ({
+        label: b[0],
+        bar: 'width:100%;border-radius:12px;height:' + b[1] + '%;background:' + (b[2] ? t.accent : (o.theme === 'dark' ? '#3a3a30' : '#d3d0c5')),
+        labelStyle: 'font-family:\'IBM Plex Mono\',monospace;font-size:28px;text-align:center;color:' + t.muted
+      })),
+      foot: o.foot || '',
+      footStyle: o.foot ? 'margin-top:' + (o.justify === 'space-between' ? '0' : 'auto') + ';padding-top:56px;font-family:\'IBM Plex Mono\',monospace;font-size:32px;letter-spacing:0.12em;text-transform:uppercase;color:' + t.accent : 'display:none'
+    };
+  }
+
+  renderVals() {
+    const F = (o) => this.frame(o);
+    const badge = (carousel) => 'font-family:\'IBM Plex Mono\',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;padding:6px 11px;border-radius:999px;background:' + (carousel ? '#cdf06a' : '#14140f') + ';color:' + (carousel ? '#14140f' : '#f5f4ef');
+
+    return {
+      rules: [
+        { title: '4:5, not square', body: 'Portrait 1080×1350 takes more feed height and is the ratio the algorithm prioritises.' },
+        { title: 'Slide 2 does the work', body: 'Carousels get re-served starting from slide 2, so it carries a second hook — never filler.' },
+        { title: 'Built to be sent', body: 'Sends are the strongest reach signal, so every post ends with a reason to DM it to someone.' },
+        { title: 'Under 30 words a slide', body: 'Big type, lots of air. Anything longer becomes another slide instead.' }
+      ],
+
+      posts: [
+        {
+          badge: 'Post 01 · Carousel · 8 slides', badgeStyle: badge(true),
+          name: 'The subscription audit', goal: 'Goal: saves',
+          why: 'Educational reference content earns the highest save rate, and this one ends with a number the viewer wants to check on themselves.',
+          frames: [
+            F({ theme: 'dark', kicker: 'Subscription audit', head: 'You are paying for 4 things you forgot about.', body: 'The average person under 25 is wrong about their subscription total by $40 a month.', foot: 'Swipe →' }),
+            F({ theme: 'light', head: 'Guess your number first.', body: 'Before you swipe. What do you think you spend a month on subscriptions? Hold that number.', foot: 'Keep swiping →' }),
+            F({ theme: 'white', kicker: 'A real Tally user', head: 'They guessed $20.', list: [['Streaming', '$11.99'], ['Music', '$5.99'], ['Gaming pass', '$9.99'], ['Cloud storage', '$2.99'], ['Fitness app', '$14.99']], headSize: 96 }),
+            F({ theme: 'lime', head: 'It was $45.95.', body: 'That is $551 a year. More than a flight home. More than a month of groceries.', foot: 'One more →' }),
+            F({ theme: 'light', kicker: 'Why it happens', head: 'Nobody budgets for $2.99.', body: 'Small recurring charges are invisible one at a time. They are only visible added up — which no app makes you do.' }),
+            F({ theme: 'dark', kicker: 'The fix', head: 'Read your own statement once.', body: 'Sort by merchant. Every name you see twice is a subscription. It takes eleven minutes.' }),
+            F({ theme: 'green', kicker: 'Or', head: 'Tally does it the moment you connect.', body: 'It finds every recurring charge, flags trials three days before they convert, and shows the annual cost next to each one.' }),
+            F({ theme: 'lime', head: 'What was your number?', body: 'Guess in the comments, then go check. Send this to the person you split a plan with.', foot: 'Link in bio' })
+          ],
+          caption: 'Guess what you spend a month on subscriptions. Write it down.\n\nNow go look. Almost everyone is off by $30–50, because nobody budgets for $2.99 five separate times.\n\nThis person guessed $20. It was $45.95 — $551 a year.',
+          cta: 'Save this and do the audit tonight. Send it to whoever you split a plan with.',
+          tags: '#subscriptions #moneytips #studentbudget #savingmoney #personalfinance #adulting'
+        },
+
+        {
+          badge: 'Post 02 · Single', badgeStyle: badge(false),
+          name: 'The one-stat hook', goal: 'Goal: reach + comments',
+          why: 'One number, one line, no explanation. Built for the Explore grid — high contrast, readable at thumbnail size, and it provokes a reply rather than a like.',
+          frames: [
+            F({ theme: 'lime', justify: 'space-between', kicker: 'Money you were never taught', head: '73% of us were never shown how to budget.', body: 'Not in school. Not at home. We just started earning and hoped.', foot: 'Tally · link in bio', headSize: 128 })
+          ],
+          caption: 'Nobody sat you down for this one.\n\nYou got taught the quadratic formula and then handed a debit card.',
+          cta: 'Comment the one money thing you wish someone had explained earlier. I will answer every one.',
+          tags: '#financialliteracy #adulting #firstjob #moneytok #studentlife'
+        },
+
+        {
+          badge: 'Post 03 · Carousel · 5 slides', badgeStyle: badge(true),
+          name: 'What Tally actually does', goal: 'Goal: profile visits',
+          why: 'Product explainer kept to five slides — short format for a single idea. Slide 2 states the limitation up front, which builds more trust than any feature claim.',
+          frames: [
+            F({ theme: 'dark', kicker: 'What it is', head: 'Not a bank. A layer on top of the one you have.', body: 'You keep your account. Tally makes sense of it.', foot: 'Swipe →' }),
+            F({ theme: 'white', kicker: 'What it cannot do', head: 'Tally cannot touch your money.', body: 'Read-only access through Plaid. It can see transactions. It has no permission to move a dollar — not even to help.', bodySize: 42 }),
+            F({ theme: 'light', kicker: 'What it does', head: 'Four buckets. One number.', list: [['Food', 'on pace', true], ['Fun', '$32 left'], ['Transport', 'on pace', true], ['Safe to spend', '$62', true]], headSize: 100 }),
+            F({ theme: 'green', kicker: 'The habit part', head: 'A day counts when you stay under pace.', body: 'Not when you open the app. The streak measures your money, not your screen time.' }),
+            F({ theme: 'lime', head: 'Free to connect. Free to keep.', body: 'First 500 accounts this fall.', foot: 'Link in bio' })
+          ],
+          caption: 'Every finance app wants you to open a new account. This one does not.\n\nTally connects to the bank you already use, read-only, and turns your transactions into four buckets and one number: what is actually safe to spend this week.\n\nIt cannot move your money. That is on purpose.',
+          cta: 'Send this to a friend who says they are bad with money. They are not — they just have no system.',
+          tags: '#fintech #budgetingapp #moneyhabits #plaid #studentfinance'
+        },
+
+        {
+          badge: 'Post 04 · Carousel · 9 slides', badgeStyle: badge(true),
+          name: 'Before your first apartment', goal: 'Goal: saves + sends',
+          why: 'The highest-save format: a checklist about a stressful milestone the audience is about to hit. Nine slides is in the range where completion rate climbs again.',
+          frames: [
+            F({ theme: 'dark', kicker: 'Read this at 19, not 22', head: 'Your first apartment will check something you have not built yet.', foot: 'Swipe →', headSize: 104 }),
+            F({ theme: 'lime', head: 'It is not your income.', body: 'You can have a job and still get denied. Landlords check a file most people under 21 do not have at all.' }),
+            F({ theme: 'white', kicker: 'What they actually check', head: 'Five things.', list: [['Credit file exists', 'yes / no'], ['Payment history', '35%'], ['How long', '15%'], ['Income vs rent', '3x'], ['Prior evictions', 'none']], headSize: 100 }),
+            F({ theme: 'light', kicker: 'The hard part', head: 'A file takes six months minimum.', body: 'The bureaus need at least one account reporting for six months before a score exists at all. You cannot rush it in April.' }),
+            F({ theme: 'dark', kicker: 'What builds it', head: 'One small account. Paid on time. For a year.', body: 'That is genuinely the whole formula. Not a big limit, not a big balance.' }),
+            F({ theme: 'white', kicker: 'What does not build it', head: 'Being good with money.', body: 'Paying cash for everything builds nothing. Neither does a big savings balance. The system only counts borrowing you repaid.', bodySize: 42 }),
+            F({ theme: 'green', kicker: 'Timeline', head: 'Start 18 months out.', bars: [['now', 12], ['6mo', 38, true], ['12mo', 68, true], ['18mo', 92, true]] }),
+            F({ theme: 'light', kicker: 'While you wait', head: 'Get your paperwork ready.', body: 'Two months of pay stubs, a bank statement, and a co-signer conversation you should have early, not in a panic.' }),
+            F({ theme: 'lime', head: 'Send this to someone moving out next year.', body: 'They need the 18-month version, not the one-week version.', foot: 'Link in bio' })
+          ],
+          caption: 'The first time most people hear about credit is the moment they get denied for it.\n\nA lease checks a file you were never told to build, and that file takes six months minimum to exist. Which means the work happens 18 months before you sign anything — not the week you start looking.\n\nSlide 7 is the timeline.',
+          cta: 'Save this for when you start looking. Send it to whoever you are planning to live with.',
+          tags: '#firstapartment #creditscore #movingout #adulting #renting #financialliteracy'
+        },
+
+        {
+          badge: 'Post 05 · Single', badgeStyle: badge(false),
+          name: 'Waitlist close', goal: 'Goal: conversions',
+          why: 'The only hard-sell post in the set. Runs last, after four posts of giving something away, and names a real constraint instead of a fake deadline.',
+          frames: [
+            F({ theme: 'dark', justify: 'space-between', kicker: 'Tally · fall 2026', head: '500 accounts. Then we close it.', body: 'Not a marketing deadline — we are a small team and 500 is what we can support properly.', foot: 'Link in bio', headSize: 122 })
+          ],
+          caption: 'We are opening the first 500 Tally accounts this fall.\n\nThat number is not a growth-hack countdown. It is how many people we can actually support while we get this right.\n\nFree to connect, free to keep. No card, no account to open, nothing to switch.',
+          cta: 'Link in bio for the waitlist. Twenty seconds, and you can leave whenever you want.',
+          tags: '#waitlist #earlyaccess #fintech #moneyhabits #studentfinance'
+        }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

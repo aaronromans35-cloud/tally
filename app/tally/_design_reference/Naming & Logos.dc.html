@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #f5f4ef; }
+  * { box-sizing: border-box; }
+  a { color: #1c6a48; text-decoration: none; }
+  a:hover { color: #14140f; }
+  ::selection { background: #cdf06a; }
+</style>
+</helmet>
+<div style="background:#f5f4ef;color:#14140f;font-family:'IBM Plex Sans',system-ui,sans-serif;padding:56px 48px 96px">
+  <div style="max-width:1240px;margin:0 auto">
+
+    <header style="margin-bottom:52px;max-width:44em">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#6b6a60;margin-bottom:18px">Naming &amp; identity · round 1</div>
+      <h1 style="font-family:'Space Grotesk',sans-serif;font-size:52px;line-height:1.02;letter-spacing:-0.035em;font-weight:700;margin:0 0 16px">Fifteen names, fourteen marks.</h1>
+      <p style="font-size:18px;line-height:1.6;color:#4a4941;margin:0">Every name below is one syllable or two, easy to say out loud, and means something on its own — no invented fintech Latin. Tell me which two or three you like and I'll pair them with the marks.</p>
+    </header>
+
+    <section style="margin-bottom:72px">
+      <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:26px;padding-bottom:14px;border-bottom:2px solid #14140f">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#6b6a60">01</span>
+        <h2 style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;letter-spacing:-0.025em;margin:0">Names</h2>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
+        <sc-for list="{{ names }}" as="n" hint-placeholder-count="15">
+          <div style="{{ n.cardStyle }}">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px">
+              <span style="font-family:'Space Grotesk',sans-serif;font-size:34px;font-weight:700;letter-spacing:-0.03em">{{ n.name }}</span>
+              <span style="{{ n.tagStyle }}">{{ n.tag }}</span>
+            </div>
+            <p style="font-size:15px;line-height:1.55;margin:0 0 16px;color:#4a4941;text-wrap:pretty">{{ n.why }}</p>
+            <div style="display:flex;flex-direction:column;gap:7px;padding-top:14px;border-top:1px solid #e4e2d9">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#6b6a60">Tagline · {{ n.line }}</div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#6b6a60">Watch out · {{ n.risk }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section>
+      <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:26px;padding-bottom:14px;border-bottom:2px solid #14140f">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#6b6a60">02</span>
+        <h2 style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;letter-spacing:-0.025em;margin:0">Marks</h2>
+        <span style="font-size:15px;color:#4a4941;margin-left:8px">Shown at app-icon size and in a header, using “Tally” as placeholder text.</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px">
+
+        <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:22px;padding:26px">
+          <div style="height:96px;display:flex;align-items:center;justify-content:center;margin-bottom:22px">
+            <div style="display:flex;align-items:flex-end;gap:5px;height:44px">
+              <div style="width:5px;height:100%;border-radius:3px;background:#1c6a48"></div>
+              <div style="width:5px;height:100%;border-radius:3px;background:#1c6a48"></div>
+              <div style="width:5px;height:100%;border-radius:3px;background:#1c6a48"></div>
+              <div style="width:5px;height:100%;border-radius:3px;background:#1c6a48"></div>
+              <div style="width:5px;height:100%;border-radius:3px;background:#cdf06a;transform:rotate(30deg);margin-left:-16px"></div>
+            </div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#6b6a60;margin-bottom:6px">A · Tally marks</div>
+          <div style="font-size:15px;line-height:1.5;color:#4a4941">Four strokes and a slash — the oldest streak counter there is. Reads as five, which is the weekly habit goal.</div>
+        </div>
+
+        <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:22px;padding:26px">
+          <div style="height:96px;display:flex;align-items:center;justify-content:center;margin-bottom:22px">
+            <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-start">
+              <div style="width:24px;height:9px;border-radius:3px;background:#cdf06a"></div>
+              <div style="width:38px;height:9px;border-radius:3px;background:#4f9a72"></div>
+              <div style="width:52px;height:9px;border-radius:3px;background:#1c6a48"></div>
+            </div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#6b6a60;margin-bottom:6px">B · Steps</div>
+          <div style="font-size:15px;line-height:1.5;color:#4a4941">Three rungs climbing. Works for Rung, Stack, or Tally. Scales down to a favicon without losing the idea.</div>
+        </div>
+
+        <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:22px;padding:26px">
+          <div style="height:96px;display:flex;align-items:center;justify-content:center;margin-bottom:22px">
+            <div style="width:62px;height:62px;border-radius:18px;background:#1c6a48;display:flex;align-items:center;justify-content:center">
+              <div style="width:22px;height:22px;border-radius:7px;background:#cdf06a"></div>
+            </div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#6b6a60;margin-bottom:6px">C · Squircle (current)</div>
+          <div style="font-size:15px;line-height:1.5;color:#4a4941">The safe one. Neutral, obviously an app icon, and the inner square can animate into a checkmark on log-in.</div>
+        </div>
+
+        <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:22px;padding:26px">
+          <div style="height:96px;display:flex;align-items:center;justify-content:center;margin-bottom:22px">
+            <div style="width:62px;height:62px;border-radius:16px;background:#14140f;position:relative;overflow:hidden">
+              <div style="position:absolute;right:-13px;top:-13px;width:32px;height:32px;border-radius:12px;background:#f5f4ef"></div>
+              <div style="position:absolute;left:14px;bottom:14px;width:16px;height:16px;border-radius:5px;background:#cdf06a"></div>
+            </div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#6b6a60;margin-bottom:6px">D · The notch</div>
+          <div style="font-size:15px;line-height:1.5;color:#4a4941">A block with a bite taken out — one notch cut for every day logged. Made for the name Notch.</div>
+        </div>
+
+        <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:22px;padding:26px">
+          <div style="height:96px;display:flex;align-items:center;justify-content:center;margin-bottom:22px">
+            <div style="width:62px;height:62px;border-radius:99px;border:9px solid #eae8de;border-top-color:#1c6a48;border-right-color:#1c6a48;border-bottom-color:#1c6a48;transform:rotate(-45deg)"></div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#6b6a60;margin-bottom:6px">E · Progress ring</div>
+          <div style="font-size:15px;line-height:1.5;color:#4a4941">The mark IS the streak — it fills as you log days. Downside: rings are everywhere in fitness apps.</div>
+        </div>
+
+        <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:22px;padding:26px">
+          <div style="height:96px;display:flex;align-items:center;justify-content:center;margin-bottom:22px">
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+              <div style="width:12px;height:12px;border-radius:4px;background:#1c6a48"></div>
+              <div style="width:12px;height:12px;border-radius:4px;background:#1c6a48"></div>
+              <div style="width:12px;height:12px;border-radius:4px;background:#1c6a48"></div>
+              <div style="width:12px;height:12px;border-radius:4px;background:#1c6a48"></div>
+              <div style="width:12px;height:12px;border-radius:4px;background:#1c6a48"></div>
+              <div style="width:12px;height:12px;border-radius:4px;background:#cdf06a"></div>
+              <div style="width:12px;height:12px;border-radius:4px;background:#eae8de"></div>
+              <div style="width:12px;height:12px;border-radius:4px;background:#eae8de"></div>
+            </div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#6b6a60;margin-bottom:6px">F · Week grid</div>
+          <div style="font-size:15px;line-height:1.5;color:#4a4941">Lifted straight from the streak screen, so the icon and the product are the same object. Feels most like software.</div>
+        </div>
+
+        <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:22px;padding:26px">
+          <div style="height:96px;display:flex;align-items:center;justify-content:center;margin-bottom:22px">
+            <div style="width:62px;height:62px;border-radius:18px;background:#cdf06a;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:34px;letter-spacing:-0.04em;color:#14140f">T</div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#6b6a60;margin-bottom:6px">G · Monogram</div>
+          <div style="font-size:15px;line-height:1.5;color:#4a4941">Cheapest to execute and hardest to get wrong. Only works if the name survives — swap the letter, keep the system.</div>
+        </div>
+
+        <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:22px;padding:26px">
+          <div style="height:96px;display:flex;align-items:center;justify-content:center;margin-bottom:22px">
+            <div style="display:flex;flex-direction:column;gap:5px;align-items:center">
+              <div style="width:54px;height:13px;border-radius:5px;background:#cdf06a"></div>
+              <div style="width:44px;height:13px;border-radius:5px;background:#4f9a72"></div>
+              <div style="width:34px;height:13px;border-radius:5px;background:#1c6a48"></div>
+            </div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#6b6a60;margin-bottom:6px">H · Coin stack</div>
+          <div style="font-size:15px;line-height:1.5;color:#4a4941">Literal and warm. Reads instantly as money to a 15-year-old, which the abstract marks don't.</div>
+        </div>
+
+        <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:22px;padding:26px">
+          <div style="height:96px;display:flex;align-items:center;justify-content:center;margin-bottom:22px">
+            <div style="width:62px;height:62px;border-radius:18px;background:#1c6a48;display:flex;align-items:flex-end;justify-content:center;padding-bottom:14px">
+              <div style="width:26px;height:26px;border-left:6px solid #cdf06a;border-bottom:6px solid #cdf06a;transform:rotate(-45deg);border-radius:2px"></div>
+            </div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#6b6a60;margin-bottom:6px">I · Check</div>
+          <div style="font-size:15px;line-height:1.5;color:#4a4941">The single gesture the whole product asks for. Reads as “done” in every language and needs no explanation.</div>
+        </div>
+
+        <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:22px;padding:26px">
+          <div style="height:96px;display:flex;align-items:center;justify-content:center;margin-bottom:22px">
+            <div style="width:62px;height:62px;border-radius:18px;background:#14140f;display:flex;flex-direction:column;justify-content:flex-end;padding:0 0 0 0;overflow:hidden">
+              <div style="height:38%;background:#cdf06a"></div>
+            </div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#6b6a60;margin-bottom:6px">J · Fill level</div>
+          <div style="font-size:15px;line-height:1.5;color:#4a4941">A vessel filling up. The icon can literally rise with your savings rate — the only mark here that is also a live gauge.</div>
+        </div>
+
+        <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:22px;padding:26px">
+          <div style="height:96px;display:flex;align-items:center;justify-content:center;margin-bottom:22px">
+            <div style="width:62px;height:62px;border-radius:18px;background:#cdf06a;position:relative;overflow:hidden">
+              <div style="position:absolute;left:0;right:0;bottom:0;height:26px;background:#1c6a48"></div>
+              <div style="position:absolute;left:16px;top:16px;width:30px;height:8px;border-radius:4px;background:#14140f"></div>
+            </div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#6b6a60;margin-bottom:6px">K · The sill</div>
+          <div style="font-size:15px;line-height:1.5;color:#4a4941">A ledge with something resting on it. Built for the name Sill, and the warmest shape in the set.</div>
+        </div>
+
+        <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:22px;padding:26px">
+          <div style="height:96px;display:flex;align-items:center;justify-content:center;margin-bottom:22px">
+            <div style="display:flex;align-items:flex-end;gap:7px;height:56px">
+              <div style="width:11px;height:38%;border-radius:4px;background:#eae8de"></div>
+              <div style="width:11px;height:58%;border-radius:4px;background:#4f9a72"></div>
+              <div style="width:11px;height:100%;border-radius:4px;background:#1c6a48"></div>
+            </div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#6b6a60;margin-bottom:6px">L · Growth bars</div>
+          <div style="font-size:15px;line-height:1.5;color:#4a4941">The most literally financial mark here. Credible to a bank partner, least distinctive to a 16-year-old.</div>
+        </div>
+
+        <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:22px;padding:26px">
+          <div style="height:96px;display:flex;align-items:center;justify-content:center;margin-bottom:22px">
+            <div style="width:62px;height:62px;border-radius:18px;background:#14140f;display:flex;align-items:center;justify-content:center">
+              <div style="width:34px;height:34px;border-radius:99px;border:6px dashed #cdf06a"></div>
+            </div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#6b6a60;margin-bottom:6px">M · Coin outline</div>
+          <div style="font-size:15px;line-height:1.5;color:#4a4941">A dashed coin — money that isn't fixed yet. The dashes double as days, closing the loop as the week completes.</div>
+        </div>
+
+        <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:22px;padding:26px">
+          <div style="height:96px;display:flex;align-items:center;justify-content:center;margin-bottom:22px">
+            <div style="display:flex;flex-direction:column;gap:6px;align-items:center">
+              <div style="width:14px;height:14px;border-radius:5px;background:#cdf06a"></div>
+              <div style="width:34px;height:14px;border-radius:5px;background:#4f9a72"></div>
+              <div style="width:54px;height:14px;border-radius:5px;background:#1c6a48"></div>
+            </div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#6b6a60;margin-bottom:6px">N · Pyramid</div>
+          <div style="font-size:15px;line-height:1.5;color:#4a4941">Foundation first, then the small stuff on top — the order the product actually teaches. Works for Stack or Grain.</div>
+        </div>
+
+      </div>
+
+      <div style="margin-top:26px;background:#14140f;color:#f5f4ef;border-radius:24px;padding:34px 36px">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#a8a69b;margin-bottom:20px">Marks in a header, at real size</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:28px">
+          <sc-for list="{{ lockups }}" as="l" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:11px;padding-bottom:16px;border-bottom:1px solid #2c2c24">
+              <div style="{{ l.mark }}"></div>
+              <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px;letter-spacing:-0.02em">{{ l.word }}</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.1em;color:#8b897f;margin-left:auto">{{ l.key }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1340,&quot;height&quot;:1100}}">
+class Component extends DCLogic {
+  renderVals() {
+    const pick = (n) => n === 'Tally' || n === 'Notch' || n === 'Rung';
+    return {
+      names: [
+        { name: 'Tally', tag: 'Current', why: 'A tally is a mark you make for each day you showed up — the product mechanic and the name are the same word.', line: 'Money habits, one day at a time.', risk: 'Several small B2B tools already use it.' },
+        { name: 'Notch', tag: 'Strongest', why: 'You notch a belt, a bedpost, a milestone. Short, physical, and no one hears “finance app” first — which is the point.', line: 'One notch a day.', risk: 'Notch is also a famous game developer.' },
+        { name: 'Rung', tag: 'Strongest', why: 'A rung is the smallest possible step up a ladder. Perfect for a product built on tiny weekly actions.', line: 'Start on the first rung.', risk: 'Rhymes with young — could read as childish.' },
+        { name: 'Stack', tag: 'Safe', why: 'Money stacks, habits stack, and the word already means “build up” to anyone under 25.', line: 'Stack it before you spend it.', risk: 'Crowded — a lot of fintechs use it.' },
+        { name: 'Nudge', tag: 'On-thesis', why: 'The literal behavioral-economics term for what the app does. Ross graders will recognize it immediately.', line: 'A nudge beats a lecture.', risk: 'Maybe too academic; sounds like a feature, not a bank.' },
+        { name: 'Perch', tag: 'Wildcard', why: 'Where you sit before you fly. Warm, memorable, and unclaimed in consumer finance.', line: 'Somewhere to sit before you leap.', risk: 'No obvious money connection.' },
+        { name: 'Compound', tag: 'On-thesis', why: 'The single most valuable idea in personal finance, used as a name. States the whole thesis in one word.', line: 'Small things, compounded.', risk: 'Long, and “compound” has other meanings.' },
+        { name: 'Ember', tag: 'Wildcard', why: 'Small heat that becomes a fire if you keep feeding it — a streak metaphor without saying streak.', line: 'Keep it lit.', risk: 'Sounds like a dating or wellness app.' },
+        { name: 'Yield', tag: 'Sharp', why: 'A finance term teens will grow into, and it doubles as “what you get back.” Reads credible to a bank partner.', line: 'What your habits return.', risk: 'Coldest of the set; also a road sign.' },
+        { name: 'Drip', tag: 'Sharp', why: 'Money in a little at a time, and “drip” already means style to your exact audience. Rare double meaning.', line: 'Drip into it weekly.', risk: 'Slang ages fast — could sound dated by 2030.' },
+        { name: 'Keep', tag: 'Safe', why: 'The verb the whole product is about: keep some of it, keep the streak, keep going.', line: 'Keep more of it.', risk: 'Very common word, hard to trademark or search.' },
+        { name: 'Rally', tag: 'On-thesis', why: 'A market rally and a personal comeback in one word — and it rhymes with the current name.', line: 'Every week is a rally.', risk: 'Also a sports and political term.' },
+        { name: 'Sill', tag: 'Wildcard', why: 'The ledge money rests on before it goes anywhere. Quiet, unclaimed, and easy to draw.', line: 'Set some on the sill.', risk: 'Obscure — needs the tagline to land.' },
+        { name: 'Grain', tag: 'Wildcard', why: 'A grain at a time fills the silo — compounding without using the word compounding.', line: 'A grain at a time.', risk: 'Reads agricultural before financial.' },
+        { name: 'Vault', tag: 'Safe', why: 'Already the name of the core feature. Concrete, protective, and instantly understood as money.', line: 'Your first vault.', risk: 'Heavily used in crypto and password apps.' }
+      ].map(n => ({
+        ...n,
+        cardStyle: 'background:#ffffff;border-radius:22px;padding:26px;border:' + (pick(n.name) ? '2px solid #1c6a48' : '1px solid #e0ded4'),
+        tagStyle: 'font-family:\'IBM Plex Mono\',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;border-radius:999px;flex:none;background:' + (pick(n.name) ? '#cdf06a' : '#f0eee5') + ';color:#3d5410'
+      })),
+
+      lockups: [
+        { word: 'Notch', key: 'Mark D', mark: 'width:26px;height:26px;border-radius:8px;background:#cdf06a;flex:none' },
+        { word: 'Rung', key: 'Mark B', mark: 'width:26px;height:26px;border-radius:8px;background:#1c6a48;flex:none' },
+        { word: 'Tally', key: 'Mark F', mark: 'width:26px;height:26px;border-radius:8px;background:#4f9a72;flex:none' },
+        { word: 'Stack', key: 'Mark H', mark: 'width:26px;height:26px;border-radius:8px;background:#f5f4ef;flex:none' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

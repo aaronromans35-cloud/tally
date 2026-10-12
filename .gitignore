@@ -40,6 +40,17 @@ _backup*/
 # vercel
 .vercel
 
+# Agent / skill tooling — vendored tool installs, not app code.
+# ~14MB, and .agents/ duplicates .claude/skills/ byte for byte. Tracking it
+# would put that weight in history permanently for everyone who clones.
+# skills-lock.json IS tracked, so these can be reinstalled reproducibly.
+.agents/
+.claude/skills/
+skills/
+skill-zips/
+project-instructions/
+.impeccable/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

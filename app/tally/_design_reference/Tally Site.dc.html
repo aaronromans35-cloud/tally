@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #f5f4ef; }
+  * { box-sizing: border-box; }
+  a { color: #14140f; text-decoration: none; }
+  a:hover { color: #1c6a48; }
+  ::selection { background: #cdf06a; }
+</style>
+</helmet>
+<div style="background:#f5f4ef;color:#14140f;font-family:'IBM Plex Sans',system-ui,sans-serif;min-height:100vh;overflow-x:hidden">
+
+  <header style="position:sticky;top:0;z-index:50;background:rgba(245,244,239,0.88);backdrop-filter:blur(12px);border-bottom:1px solid #dcdad1">
+    <div style="max-width:1200px;margin:0 auto;padding:16px 32px;display:flex;align-items:center;gap:40px">
+      <div style="display:flex;align-items:center;gap:10px;cursor:pointer" onClick="{{ navHome }}">
+        <div style="width:26px;height:26px;background:#1c6a48;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.5px;flex:none">
+          <div style="width:11px;height:3px;border-radius:3px;background:#cdf06a"></div>
+          <div style="width:14px;height:3px;border-radius:3px;background:#9fd35a"></div>
+          <div style="width:17px;height:3px;border-radius:3px;background:#f5f4ef"></div>
+        </div>
+        <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px;letter-spacing:-0.02em">Tally</span>
+      </div>
+      <nav style="display:flex;gap:4px;margin-left:auto">
+        <button onClick="{{ navHome }}" style="{{ tabHome }}" style-hover="background:#e9e7de">Home</button>
+        <button onClick="{{ navProduct }}" style="{{ tabProduct }}" style-hover="background:#e9e7de">Product</button>
+        <button onClick="{{ navHabits }}" style="{{ tabHabits }}" style-hover="background:#e9e7de">Streaks</button>
+        <button onClick="{{ navAbout }}" style="{{ tabAbout }}" style-hover="background:#e9e7de">About</button>
+      </nav>
+      <button style="font-family:'IBM Plex Sans',sans-serif;font-size:14px;font-weight:600;padding:10px 18px;border:none;border-radius:999px;background:#14140f;color:#f5f4ef;cursor:pointer" style-hover="background:#1c6a48">Get early access</button>
+    </div>
+  </header>
+
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+  <div>
+    <section style="max-width:1200px;margin:0 auto;padding:88px 32px 72px;display:grid;grid-template-columns:1.05fr 0.95fr;gap:56px;align-items:center">
+      <div>
+        <h1 style="font-family:'Space Grotesk',sans-serif;font-size:76px;line-height:0.94;letter-spacing:-0.035em;font-weight:700;margin:0 0 24px;text-wrap:balance">Money habits, one day at a time.</h1>
+        <p style="font-size:20px;line-height:1.5;color:#4a4941;max-width:30em;margin:0 0 36px;text-wrap:pretty">Connect the bank account you already have. Tally sorts your spending, watches your subscriptions, and gives you one small thing to check every day.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+          <button style="font-family:'IBM Plex Sans',sans-serif;font-size:16px;font-weight:600;padding:15px 26px;border:none;border-radius:999px;background:#1c6a48;color:#f7fbf6;cursor:pointer" style-hover="background:#14140f">Connect an account</button>
+          <button onClick="{{ navProduct }}" style="font-family:'IBM Plex Sans',sans-serif;font-size:16px;font-weight:600;padding:15px 26px;border:1px solid #cac7bc;border-radius:999px;background:transparent;color:#14140f;cursor:pointer" style-hover="background:#e9e7de">See how it works</button>
+        </div>
+        <div style="display:flex;gap:32px;margin-top:44px;flex-wrap:wrap">
+          <div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;letter-spacing:-0.02em">Free</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#6b6a60;line-height:1.5">to connect and track<br />premium coming later</div>
+          </div>
+          <div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;letter-spacing:-0.02em">Read-only</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#6b6a60;line-height:1.5">Tally can see your money<br />it can never move it</div>
+          </div>
+          <div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;letter-spacing:-0.02em">2 min</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#6b6a60;line-height:1.5">to link an account<br />and see your first recap</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="background:#ffffff;border:1px solid #e4e2d9;border-radius:22px;padding:26px 28px">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#6b6a60;margin-bottom:10px">Safe to spend this week</div>
+          <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:20px">
+            <span style="font-family:'Space Grotesk',sans-serif;font-size:54px;font-weight:700;letter-spacing:-0.04em;line-height:1">$62</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#1c6a48">4 days left in the week</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:13px">
+            <sc-for list="{{ heroBuckets }}" as="b" hint-placeholder-count="4">
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+                  <span style="font-size:14px;font-weight:500">{{ b.name }}</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#4a4941">{{ b.amount }}</span>
+                </div>
+                <div style="height:7px;border-radius:99px;background:#ece9df;overflow:hidden">
+                  <div style="{{ b.fill }}"></div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div style="background:#fcf8e9;border:1px solid #d9c477;border-radius:22px;padding:22px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#8a6a12;margin-bottom:8px">Trial alert</div>
+            <div style="font-size:15px;line-height:1.4;font-weight:500;margin-bottom:6px">Fitness app charges $14.99 in 3 days</div>
+            <div style="font-size:13px;color:#6b6a60">Cancel before Thursday</div>
+          </div>
+          <div style="background:#14140f;color:#f5f4ef;border-radius:22px;padding:22px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#a8a69b;margin-bottom:8px">Habit streak</div>
+            <div style="display:flex;align-items:baseline;gap:7px;margin-bottom:12px">
+              <span style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;letter-spacing:-0.03em;line-height:1">{{ streak }}</span>
+              <span style="font-size:13px;color:#a8a69b">{{ streakLabel }}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">
+              <sc-for list="{{ days }}" as="d" hint-placeholder-count="14">
+                <div onClick="{{ d.toggle }}" style="{{ d.heroStyle }}" title="Tap to toggle"></div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="max-width:1200px;margin:0 auto;padding:64px 32px 88px">
+      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:44px;letter-spacing:-0.03em;font-weight:700;margin:0 0 12px">The six habits Tally builds</h2>
+      <p style="font-size:18px;color:#4a4941;max-width:34em;margin:0 0 44px">Each one is a small daily or weekly action, built on the transactions already in your account.</p>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+        <sc-for list="{{ habits }}" as="h" hint-placeholder-count="6">
+          <div style="background:#ffffff;border:1px solid #e4e2d9;border-radius:22px;padding:26px;display:flex;flex-direction:column;gap:10px" style-hover="border-color:#1c6a48">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.08em;color:#1c6a48">{{ h.num }}</div>
+            <h3 style="font-family:'Space Grotesk',sans-serif;font-size:22px;letter-spacing:-0.02em;font-weight:600;margin:0">{{ h.title }}</h3>
+            <p style="font-size:15px;line-height:1.55;color:#4a4941;margin:0">{{ h.body }}</p>
+            <div style="margin-top:auto;padding-top:14px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#6b6a60">{{ h.cadence }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="max-width:1200px;margin:0 auto;padding:0 32px 88px">
+      <div style="background:#cdf06a;border-radius:32px;padding:56px;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center">
+        <div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#3d5410;margin-bottom:16px">No new account to open</div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:40px;line-height:1.05;letter-spacing:-0.03em;font-weight:700;margin:0 0 18px">Tally sits on top of the bank you already use.</h2>
+          <p style="font-size:17px;line-height:1.55;color:#2c3b0d;margin:0 0 24px;text-wrap:pretty">You link your account through Plaid — the same connection your other apps use. Tally reads transactions and balances to build your buckets, catch your subscriptions, and tell you what's safe to spend. It cannot move a dollar.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button onClick="{{ navProduct }}" style="font-family:'IBM Plex Sans',sans-serif;font-size:16px;font-weight:600;padding:14px 24px;border:none;border-radius:999px;background:#14140f;color:#f5f4ef;cursor:pointer" style-hover="background:#1c6a48">See what it does</button>
+            <button onClick="{{ navHabits }}" style="font-family:'IBM Plex Sans',sans-serif;font-size:16px;font-weight:600;padding:14px 24px;border:1px solid #14140f;border-radius:999px;background:transparent;color:#14140f;cursor:pointer" style-hover="background:rgba(255,255,255,0.5)">How streaks work</button>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <sc-for list="{{ proofs }}" as="p" hint-placeholder-count="4">
+            <div style="background:rgba(255,255,255,0.72);border-radius:18px;padding:20px">
+              <div style="font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;letter-spacing:-0.02em;margin-bottom:4px">{{ p.stat }}</div>
+              <div style="font-size:14px;color:#2c3b0d;line-height:1.45">{{ p.label }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <section style="max-width:1200px;margin:0 auto;padding:0 32px 96px">
+      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:44px;letter-spacing:-0.03em;font-weight:700;margin:0 0 40px">Three taps to set up</h2>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:32px">
+        <sc-for list="{{ steps }}" as="s" hint-placeholder-count="3">
+          <div style="padding:0 8px 0 0">
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:56px;font-weight:700;color:#cdf06a;line-height:1;margin-bottom:14px">{{ s.n }}</div>
+            <h3 style="font-family:'Space Grotesk',sans-serif;font-size:21px;font-weight:600;letter-spacing:-0.02em;margin:0 0 8px">{{ s.title }}</h3>
+            <p style="font-size:15px;line-height:1.55;color:#4a4941;margin:0">{{ s.body }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isProduct }}" hint-placeholder-val="{{ false }}">
+  <div>
+    <section style="max-width:1200px;margin:0 auto;padding:80px 32px 48px;border-bottom:1px solid #dcdad1">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:#1c6a48;margin-bottom:18px">Product</div>
+      <h1 style="font-family:'Space Grotesk',sans-serif;font-size:64px;line-height:0.98;letter-spacing:-0.035em;font-weight:700;margin:0 0 20px;max-width:20em">Everything you need to know about your money, without a spreadsheet.</h1>
+      <p style="font-size:19px;line-height:1.55;color:#4a4941;max-width:38em;margin:0">Tally reads your transactions and turns them into four buckets, a weekly recap, subscription alerts, and one daily habit worth keeping.</p>
+    </section>
+
+    <sc-for list="{{ features }}" as="f" hint-placeholder-count="6">
+      <section style="max-width:1200px;margin:0 auto;padding:0 32px">
+        <div style="{{ f.rowStyle }}">
+          <div style="{{ f.textStyle }}">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#6b6a60;margin-bottom:14px">{{ f.kicker }}</div>
+            <h2 style="font-family:'Space Grotesk',sans-serif;font-size:38px;line-height:1.05;letter-spacing:-0.03em;font-weight:700;margin:0 0 16px">{{ f.title }}</h2>
+            <p style="font-size:17px;line-height:1.6;color:#4a4941;margin:0 0 20px;text-wrap:pretty">{{ f.body }}</p>
+            <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px">
+              <sc-for list="{{ f.bullets }}" as="b" hint-placeholder-count="3">
+                <li style="display:flex;gap:10px;font-size:15px;color:#14140f;align-items:flex-start">
+                  <span style="width:6px;height:6px;border-radius:99px;background:#1c6a48;margin-top:7px;flex:none"></span>
+                  <span>{{ b }}</span>
+                </li>
+              </sc-for>
+            </ul>
+          </div>
+          <div style="{{ f.artStyle }}">
+            <div style="width:100%;height:300px;border-radius:20px;border:1px solid #d6d3c8;background-image:repeating-linear-gradient(135deg,#eceadf 0 10px,#f5f4ef 10px 20px);display:flex;align-items:center;justify-content:center">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.06em;color:#6b6a60;background:#f5f4ef;padding:8px 14px;border-radius:99px;border:1px solid #d6d3c8">{{ f.slot }}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </sc-for>
+
+    <section style="max-width:1200px;margin:0 auto;padding:32px 32px 96px">
+      <div style="background:#14140f;color:#f5f4ef;border-radius:32px;padding:56px">
+        <h2 style="font-family:'Space Grotesk',sans-serif;font-size:36px;letter-spacing:-0.03em;font-weight:700;margin:0 0 32px">Safety, in plain terms</h2>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:28px">
+          <sc-for list="{{ safety }}" as="s" hint-placeholder-count="3">
+            <div>
+              <h3 style="font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:600;margin:0 0 8px;color:#cdf06a">{{ s.title }}</h3>
+              <p style="font-size:15px;line-height:1.55;color:#b6b4a8;margin:0">{{ s.body }}</p>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isHabits }}" hint-placeholder-val="{{ false }}">
+  <div>
+    <section style="max-width:1200px;margin:0 auto;padding:80px 32px 56px">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:#1c6a48;margin-bottom:18px">Streaks</div>
+      <h1 style="font-family:'Space Grotesk',sans-serif;font-size:64px;line-height:0.98;letter-spacing:-0.035em;font-weight:700;margin:0 0 20px;max-width:18em">A streak is just proof you showed up.</h1>
+      <p style="font-size:19px;line-height:1.55;color:#4a4941;max-width:36em;margin:0">Check in once a day — glance at a bucket, clear an alert, log a goal. Miss a day and you get one freeze, because habits survive bad weeks, not perfect ones.</p>
+    </section>
+
+    <section style="max-width:1200px;margin:0 auto;padding:0 32px 72px">
+      <div style="background:#ffffff;border:1px solid #e4e2d9;border-radius:28px;padding:40px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:20px;margin-bottom:28px">
+          <div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#6b6a60;margin-bottom:8px">Try it — tap the days</div>
+            <div style="display:flex;align-items:baseline;gap:10px">
+              <span style="font-family:'Space Grotesk',sans-serif;font-size:56px;font-weight:700;line-height:1;letter-spacing:-0.03em">{{ streak }}</span>
+              <span style="font-size:17px;color:#4a4941;font-weight:500">{{ streakSummary }}</span>
+            </div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#6b6a60">{{ tierNote }}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(14,1fr);gap:8px;margin-bottom:26px">
+          <sc-for list="{{ days }}" as="d" hint-placeholder-count="14">
+            <div onClick="{{ d.toggle }}" style="{{ d.bigStyle }}">{{ d.label }}</div>
+          </sc-for>
+        </div>
+        <div style="height:10px;border-radius:99px;background:#ece9df;overflow:hidden;margin-bottom:10px">
+          <div style="{{ progressStyle }}"></div>
+        </div>
+        <div style="font-size:14px;color:#4a4941">{{ progressNote }}</div>
+      </div>
+    </section>
+
+    <section style="max-width:1200px;margin:0 auto;padding:0 32px 80px">
+      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:40px;letter-spacing:-0.03em;font-weight:700;margin:0 0 32px">Levels unlock more of the app</h2>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+        <sc-for list="{{ levels }}" as="l" hint-placeholder-count="4">
+          <div style="{{ l.cardStyle }}">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;opacity:0.65">{{ l.range }}</div>
+            <h3 style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;letter-spacing:-0.02em;margin:0 0 10px">{{ l.name }}</h3>
+            <p style="font-size:15px;line-height:1.5;margin:0;opacity:0.8">{{ l.perk }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="max-width:1200px;margin:0 auto;padding:0 32px 96px;display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div style="background:#ffffff;border:1px solid #e4e2d9;border-radius:24px;padding:34px">
+        <h3 style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;letter-spacing:-0.02em;margin:0 0 14px">The rules we kept</h3>
+        <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{ rulesKept }}" as="r" hint-placeholder-count="4">
+            <li style="display:flex;gap:10px;font-size:15px;line-height:1.5"><span style="color:#1c6a48;font-weight:700">+</span><span>{{ r }}</span></li>
+          </sc-for>
+        </ul>
+      </div>
+      <div style="background:#14140f;color:#f5f4ef;border-radius:24px;padding:34px">
+        <h3 style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;letter-spacing:-0.02em;margin:0 0 14px">The tricks we refused</h3>
+        <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{ rulesRefused }}" as="r" hint-placeholder-count="4">
+            <li style="display:flex;gap:10px;font-size:15px;line-height:1.5;color:#b6b4a8"><span style="color:#cdf06a;font-weight:700">−</span><span>{{ r }}</span></li>
+          </sc-for>
+        </ul>
+      </div>
+    </section>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isAbout }}" hint-placeholder-val="{{ false }}">
+  <div>
+    <section style="max-width:1200px;margin:0 auto;padding:80px 32px 56px;display:grid;grid-template-columns:1.1fr 0.9fr;gap:56px;align-items:start">
+      <div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:#1c6a48;margin-bottom:18px">About</div>
+        <h1 style="font-family:'Space Grotesk',sans-serif;font-size:60px;line-height:0.98;letter-spacing:-0.035em;font-weight:700;margin:0 0 22px">Most people learn money the expensive way.</h1>
+        <p style="font-size:19px;line-height:1.6;color:#4a4941;margin:0 0 18px;text-wrap:pretty">The first credit card, the first overdraft, the first paycheck that disappears — that's where financial education usually happens, and it costs real money. Tally moves that learning earlier, to the years when the stakes are five dollars instead of five thousand.</p>
+        <p style="font-size:19px;line-height:1.6;color:#4a4941;margin:0">We didn't build a bank. You already have one. We built the layer that makes sense of it.</p>
+      </div>
+      <div style="width:100%;height:340px;border-radius:24px;border:1px solid #d6d3c8;background-image:repeating-linear-gradient(135deg,#eceadf 0 10px,#f5f4ef 10px 20px);display:flex;align-items:center;justify-content:center">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#6b6a60;background:#f5f4ef;padding:8px 14px;border-radius:99px;border:1px solid #d6d3c8">founding team photo</div>
+      </div>
+    </section>
+
+    <section style="max-width:1200px;margin:0 auto;padding:24px 32px 72px">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+        <sc-for list="{{ values }}" as="v" hint-placeholder-count="3">
+          <div style="border-top:2px solid #14140f;padding-top:18px">
+            <h3 style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;letter-spacing:-0.02em;margin:0 0 10px">{{ v.title }}</h3>
+            <p style="font-size:15px;line-height:1.55;color:#4a4941;margin:0">{{ v.body }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="max-width:1200px;margin:0 auto;padding:0 32px 88px">
+      <div style="background:#ffffff;border:1px solid #e4e2d9;border-radius:28px;padding:44px">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:#1c6a48;margin-bottom:16px">What it costs</div>
+        <h2 style="font-family:'Space Grotesk',sans-serif;font-size:36px;letter-spacing:-0.03em;font-weight:700;margin:0 0 16px;max-width:22em">Free while we're building.</h2>
+        <p style="font-size:17px;line-height:1.6;color:#4a4941;margin:0 0 8px;max-width:44em">Connecting your accounts, buckets, streaks, subscription alerts, and the weekly recap are free — and stay free. A paid tier with deeper insights is planned for later, and we'll say exactly what's in it before we ask anyone for money.</p>
+        <p style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#6b6a60;margin:14px 0 0">We do not sell your transaction data. That is not the business model.</p>
+      </div>
+    </section>
+
+    <sc-if value="{{ showMarket }}" hint-placeholder-val="{{ true }}">
+    <section style="max-width:1200px;margin:0 auto;padding:0 32px 88px">
+      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:40px;letter-spacing:-0.03em;font-weight:700;margin:0 0 10px">The opportunity</h2>
+      <p style="font-size:17px;color:#4a4941;max-width:34em;margin:0 0 32px">Directional figures for the U.S. under-25 money-management market.</p>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+        <sc-for list="{{ market }}" as="m" hint-placeholder-count="4">
+          <div style="background:#ffffff;border:1px solid #e4e2d9;border-radius:20px;padding:24px">
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:34px;font-weight:700;letter-spacing:-0.025em;margin-bottom:8px;color:#1c6a48">{{ m.stat }}</div>
+            <div style="font-size:14px;line-height:1.5;color:#4a4941">{{ m.label }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6b6a60;margin-top:16px">Illustrative estimates for coursework — replace with cited figures before publishing.</div>
+    </section>
+    </sc-if>
+
+    <section style="max-width:1200px;margin:0 auto;padding:0 32px 96px">
+      <div style="background:#cdf06a;border-radius:32px;padding:56px;display:flex;justify-content:space-between;align-items:center;gap:32px;flex-wrap:wrap">
+        <div>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:40px;letter-spacing:-0.03em;font-weight:700;margin:0 0 10px">Want in early?</h2>
+          <p style="font-size:17px;color:#2c3b0d;margin:0">We're onboarding the first 500 users this fall.</p>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <input placeholder="you@school.edu" style="font-family:'IBM Plex Sans',sans-serif;font-size:16px;padding:15px 20px;border:1px solid #a9c757;border-radius:999px;background:#f7fbf6;min-width:260px;outline:none" />
+          <button style="font-family:'IBM Plex Sans',sans-serif;font-size:16px;font-weight:600;padding:15px 26px;border:none;border-radius:999px;background:#14140f;color:#f5f4ef;cursor:pointer" style-hover="background:#1c6a48">Join the waitlist</button>
+        </div>
+      </div>
+    </section>
+  </div>
+  </sc-if>
+
+  <footer style="border-top:1px solid #dcdad1;padding:64px 32px 40px">
+    <div style="max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:40px">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <div style="width:26px;height:26px;background:#1c6a48;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.5px;flex:none">
+            <div style="width:11px;height:3px;border-radius:3px;background:#cdf06a"></div>
+            <div style="width:14px;height:3px;border-radius:3px;background:#9fd35a"></div>
+            <div style="width:17px;height:3px;border-radius:3px;background:#f5f4ef"></div>
+          </div>
+          <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px;letter-spacing:-0.02em">Tally</span>
+        </div>
+        <p style="font-size:14px;line-height:1.55;color:#6b6a60;margin:0;max-width:24em">Money habits, one day at a time. Tally is not a bank and does not hold or move funds. Account data is provided by Plaid.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#6b6a60;margin-bottom:2px">Product</div>
+        <a href="#" onClick="{{ navProduct }}" style="font-size:14px;color:#4a4941">Features</a>
+        <a href="#" onClick="{{ navHabits }}" style="font-size:14px;color:#4a4941">Streaks &amp; levels</a>
+        <a href="#" style="font-size:14px;color:#4a4941">Security</a>
+        <a href="#" style="font-size:14px;color:#4a4941">Supported banks</a>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#6b6a60;margin-bottom:2px">Company</div>
+        <a href="#" onClick="{{ navAbout }}" style="font-size:14px;color:#4a4941">About</a>
+        <a href="#" style="font-size:14px;color:#4a4941">Careers</a>
+        <a href="#" style="font-size:14px;color:#4a4941">Press</a>
+        <a href="#" style="font-size:14px;color:#4a4941">Contact</a>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#6b6a60;margin-bottom:2px">Legal</div>
+        <a href="#" style="font-size:14px;color:#4a4941">Terms of Service</a>
+        <a href="#" style="font-size:14px;color:#4a4941">Privacy Policy</a>
+        <a href="#" style="font-size:14px;color:#4a4941">Data &amp; permissions</a>
+        <a href="#" style="font-size:14px;color:#4a4941">Accessibility</a>
+      </div>
+    </div>
+    <div style="max-width:1200px;margin:40px auto 0;padding-top:20px;border-top:1px solid #e4e2d9;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#6b6a60">
+      <span>© 2026 Tally, Inc. All rights reserved.</span>
+      <div style="display:flex;gap:22px">
+        <a href="#" style="color:#6b6a60">Instagram</a>
+        <a href="#" style="color:#6b6a60">TikTok</a>
+        <a href="#" style="color:#6b6a60">LinkedIn</a>
+      </div>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showMarket&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;About page&quot;}}">
+class Component extends DCLogic {
+  state = { page: 'home', done: [1,1,1,0,1,1,1,1,1,1,1,1,1,1] };
+
+  nav(p) { this.setState({ page: p }); window.scrollTo(0, 0); }
+
+  toggle(i) {
+    this.setState(s => {
+      const done = s.done.slice();
+      done[i] = done[i] ? 0 : 1;
+      return { done };
+    });
+  }
+
+  renderVals() {
+    const { page, done } = this.state;
+    let streak = 0, best = 0, run = 0;
+    for (let i = 0; i < done.length; i++) { if (done[i]) { run++; if (run > best) best = run; } else run = 0; }
+    for (let i = done.length - 1; i >= 0; i--) { if (done[i]) streak++; else break; }
+    if (streak === 0) streak = best;
+    const dayWord = streak === 1 ? 'day' : 'days';
+    const total = done.reduce((a, b) => a + b, 0);
+    const levelName = total >= 90 ? 'Compounder' : total >= 30 ? 'Builder' : total >= 8 ? 'Starter' : 'Rookie';
+    const nextTier = total >= 90 ? null : total >= 30 ? { name: 'Compounder', at: 90 } : total >= 8 ? { name: 'Builder', at: 30 } : { name: 'Starter', at: 8 };
+    const pct = nextTier ? Math.min(100, Math.round((total / nextTier.at) * 100)) : 100;
+    const labels = ['M','T','W','T','F','S','S','M','T','W','T','F','S','S'];
+    const tab = (p) => 'font-family:\'IBM Plex Sans\',sans-serif;font-size:15px;font-weight:' + (page === p ? '600' : '500') + ';padding:9px 16px;border:none;border-radius:999px;cursor:pointer;background:' + (page === p ? '#e9e7de' : 'transparent') + ';color:#14140f';
+    const days = done.map((on, i) => ({
+      label: labels[i], toggle: () => this.toggle(i),
+      bigStyle: 'height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:\'IBM Plex Mono\',monospace;font-size:13px;transition:background 140ms ease;' + (on ? 'background:#1c6a48;color:#f7fbf6;' : 'background:#ece9df;color:#6b6a60;'),
+      miniStyle: 'height:26px;border-radius:6px;cursor:pointer;transition:background 140ms ease;background:' + (on ? '#1c6a48' : '#ece9df'),
+      heroStyle: 'height:18px;border-radius:5px;cursor:pointer;transition:background 140ms ease;background:' + (on ? '#cdf06a' : '#2c2c24')
+    }));
+
+    return {
+      isHome: page === 'home', isProduct: page === 'product', isHabits: page === 'habits', isAbout: page === 'about',
+      navHome: () => this.nav('home'), navProduct: () => this.nav('product'), navHabits: () => this.nav('habits'), navAbout: () => this.nav('about'),
+      tabHome: tab('home'), tabProduct: tab('product'), tabHabits: tab('habits'), tabAbout: tab('about'),
+      streak, level: levelName, days,
+      streakLabel: dayWord + ' in a row',
+      streakSummary: 'day streak · ' + levelName,
+      tierNote: nextTier ? 'Next tier: ' + nextTier.name + ' at day ' + nextTier.at : 'Top tier reached',
+      progressStyle: 'width:' + pct + '%;height:100%;background:#1c6a48;border-radius:99px;transition:width 200ms ease',
+      progressNote: nextTier ? total + ' habit days logged — ' + (nextTier.at - total) + ' more to reach ' + nextTier.name + '.' : total + ' habit days logged — top tier reached.',
+      showMarket: this.props.showMarket ?? true,
+      heroBuckets: [
+        { name: 'Food', used: 62, limit: 120 },
+        { name: 'Fun', used: 48, limit: 80 },
+        { name: 'Transport', used: 21, limit: 60 },
+        { name: 'Saving', used: 40, limit: 60 }
+      ].map(b => {
+        const p = Math.min(100, Math.round((b.used / b.limit) * 100));
+        return {
+          name: b.name,
+          amount: '$' + b.used + ' / $' + b.limit,
+          fill: 'width:' + p + '%;height:100%;border-radius:99px;background:' + (p >= 80 ? '#8a6a12' : '#1c6a48')
+        };
+      }),
+      ...this.copy()
+    };
+  }
+
+  copy() {
+    return {
+      habits: [
+        { num: '01', title: 'Budgeting by category', body: 'Four buckets, not forty: food, fun, transport, saving. Tally sorts each purchase from your real transactions.', cadence: 'Daily glance' },
+        { num: '02', title: 'Safe-to-spend', body: 'One number that accounts for what is left in every bucket and what is still coming out this month.', cadence: 'Live' },
+        { num: '03', title: 'Savings goals', body: 'Name a goal, set an amount, and Tally tracks progress in the account you already keep it in.', cadence: 'Weekly' },
+        { num: '04', title: 'Bills & subscriptions', body: 'Tally flags the free trials about to charge you and the subscriptions you forgot you had.', cadence: 'Automatic' },
+        { num: '05', title: 'Weekly recap', body: 'Fifteen seconds on a Sunday: what you spent, what changed, and the one thing to watch next week.', cadence: 'Weekly' },
+        { num: '06', title: 'Daily habit streak', body: 'Check in once a day — glance at a bucket or clear an alert — and keep the streak alive.', cadence: 'Daily' }
+      ],
+      proofs: [
+        { stat: 'Plaid-powered', label: 'The same secure connection thousands of finance apps use. Tally never sees your bank password.' },
+        { stat: 'Read-only', label: 'Tally has no permission to move, spend, or transfer money. It can only read.' },
+        { stat: 'Any bank', label: 'Works with the checking account you already have — no switching, no new card.' },
+        { stat: 'Disconnect anytime', label: 'One tap revokes access and deletes the transaction history we stored.' }
+      ],
+      steps: [
+        { n: '1', title: 'Link your account', body: 'Choose your bank and log in through Plaid. Tally receives read-only access to transactions and balances.' },
+        { n: '2', title: 'Confirm your buckets', body: 'Tally proposes four monthly limits from your last three months of spending. Adjust and accept.' },
+        { n: '3', title: 'Check in daily', body: 'One tap a day. Tally handles the sorting, the alerts, and the weekly recap.' }
+      ],
+      safety: [
+        { title: 'Read-only, by design', body: 'Tally requests transaction and balance access only. Nothing in our connection can move money.' },
+        { title: 'We never see your password', body: 'You log in to your bank through Plaid. Tally receives a token, never your credentials.' },
+        { title: 'Your data is not for sale', body: 'We do not sell or share transaction data. Disconnect and we delete what we stored.' }
+      ],
+      values: [
+        { title: 'You-first, not parent-first', body: 'The primary user is the person learning. Guardians get visibility if you want it, never a remote control.' },
+        { title: 'Small stakes, real money', body: 'Practising with $20 beats reading about $20,000. Every habit runs on your actual transactions.' },
+        { title: 'Free where it matters', body: 'Connecting, buckets, streaks, and alerts stay free. No fee for being young and broke.' }
+      ],
+      market: [
+        { stat: '42M', label: 'U.S. residents aged 14–24, the core Tally cohort.' },
+        { stat: '~60%', label: 'Open their first account at the bank a parent already uses.' },
+        { stat: '25', label: 'States now requiring a personal-finance course to graduate.' },
+        { stat: '$1.4B', label: 'Estimated annual spend on youth banking and financial-literacy products.' }
+      ],
+      rulesKept: [
+        'One tap to check in — friction kills habits.',
+        'A weekly freeze, so one bad day is not a reset.',
+        'Every alert is something you can act on today.',
+        'Progress is visible in seconds, not menus.'
+      ],
+      rulesRefused: [
+        'No loss-framing push notifications at 11pm.',
+        'No leaderboards that shame low balances.',
+        'No points redeemable for merchandise.',
+        'No streak you can buy your way back into.'
+      ],
+      ...this.featureCopy()
+    };
+  }
+
+  featureCopy() {
+    const level = ['Rookie','Starter','Builder','Compounder'];
+    return {
+      levels: [
+        { range: 'Days 1–7', name: level[0], perk: 'Buckets, safe-to-spend, and subscription alerts switched on.' },
+        { range: 'Days 8–29', name: level[1], perk: 'Named savings goals unlock, plus the Sunday recap.' },
+        { range: 'Days 30–89', name: level[2], perk: 'Spending insights and month-over-month comparisons open up.' },
+        { range: 'Day 90+', name: level[3], perk: 'Full history, custom buckets, and a yearly review of everything you changed.' }
+      ].map((l, i) => ({
+        ...l,
+        cardStyle: i === 3 ? 'background:#14140f;color:#f5f4ef;border-radius:22px;padding:26px'
+          : i === 2 ? 'background:#cdf06a;color:#14140f;border-radius:22px;padding:26px'
+          : 'background:#ffffff;border:1px solid #e4e2d9;border-radius:22px;padding:26px'
+      })),
+      features: [
+        { kicker: 'Budgeting', title: 'Four buckets, zero spreadsheets', body: 'Every purchase in your linked account lands in food, fun, transport, or saving. When a bucket runs low, Tally tells you before you find out the hard way.', bullets: ['Auto-categorized from real transactions','Low-bucket warning at 80%','Recategorize once and Tally remembers'], slot: 'budget buckets screen' },
+        { kicker: 'Safe-to-spend', title: 'One number, not twelve', body: 'Tally subtracts your remaining bucket limits and the bills still due this month, then shows what is genuinely free to spend this week.', bullets: ['Updates as transactions land','Accounts for upcoming recurring charges','Weekly, not monthly — the horizon you actually plan on'], slot: 'safe-to-spend screen' },
+        { kicker: 'Goals', title: 'Track a goal without moving a dollar', body: 'Name what you are saving for and how much. Tally watches the balance you already keep it in and tells you whether you are on pace.', bullets: ['Named goals with progress and pace','Suggested weekly amount to stay on track','You make the transfer in your own bank — Tally never touches it'], slot: 'savings goals screen' },
+        { kicker: 'Subscriptions', title: 'Nothing charges you by surprise', body: 'Tally finds recurring charges in your history, warns you three days before a free trial converts, and shows the annual cost of every one.', bullets: ['Free-trial conversion alerts','Annual cost per subscription, visible','Cancellation instructions per merchant'], slot: 'subscriptions screen' },
+        { kicker: 'Recap', title: 'Fifteen seconds on a Sunday', body: 'A short weekly read: what you spent versus last week, which bucket moved, and the single thing worth watching in the week ahead.', bullets: ['Week-over-week comparison','One highlight, one warning','Readable without opening the app'], slot: 'weekly recap screen' },
+        { kicker: 'Streaks', title: 'The part that keeps you coming back', body: 'One check-in a day builds a streak; streaks build levels; levels unlock more of the app. The reward is a habit, not points.', bullets: ['Daily one-tap check-in','Weekly freeze so life happens','Levels unlock goals, recaps, and insights'], slot: 'streak & levels screen' }
+      ].map((f, i) => ({
+        ...f,
+        rowStyle: 'display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center;padding:64px 0;border-bottom:1px solid #dcdad1',
+        textStyle: 'order:' + (i % 2 === 0 ? 1 : 2),
+        artStyle: 'order:' + (i % 2 === 0 ? 2 : 1)
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

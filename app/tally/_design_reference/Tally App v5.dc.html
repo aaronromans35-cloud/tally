@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee6; }
+  * { box-sizing: border-box; }
+  a { color: #1c6a48; text-decoration: none; }
+  a:hover { color: #14140f; }
+  ::selection { background: #cdf06a; }
+</style>
+</helmet>
+<div style="background:#f0eee6;color:#14140f;font-family:'IBM Plex Sans',system-ui,sans-serif;min-height:100vh">
+
+  <header style="border-bottom:1px solid #ddd9cc;background:#f0eee6;position:sticky;top:0;z-index:30">
+    <div style="max-width:1240px;margin:0 auto;padding:14px 32px;display:flex;align-items:center;gap:28px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:26px;height:26px;background:#1c6a48;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.5px;flex:none">
+          <div style="width:11px;height:3px;border-radius:3px;background:#cdf06a"></div>
+          <div style="width:14px;height:3px;border-radius:3px;background:#9fd35a"></div>
+          <div style="width:17px;height:3px;border-radius:3px;background:#f5f4ef"></div>
+        </div>
+        <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:19px;letter-spacing:-0.02em">Tally</span>
+      </div>
+      <nav style="display:flex;gap:2px">
+        <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="6">
+          <button onClick="{{ t.go }}" style="{{ t.style }}">
+            <span>{{ t.label }}</span>
+            <span style="{{ t.badgeStyle }}">{{ t.badge }}</span>
+          </button>
+        </sc-for>
+      </nav>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
+        <div style="display:flex;align-items:center;gap:8px;background:#ffffff;border:1px solid #e0ded4;border-radius:999px;padding:7px 14px">
+          <div style="width:7px;height:7px;border-radius:99px;background:#1c6a48"></div>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#4a4941">Synced 4m ago</span>
+        </div>
+        <div style="width:32px;height:32px;border-radius:99px;background:#cdf06a;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px">JR</div>
+      </div>
+    </div>
+  </header>
+
+  <main style="max-width:1240px;margin:0 auto;padding:32px 32px 88px">
+
+    <sc-if value="{{ isToday }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-direction:column;gap:18px">
+
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap">
+        <div>
+          <h1 style="font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700;letter-spacing:-0.03em;margin:0 0 4px">Hey Jordan</h1>
+          <p style="font-size:15px;color:#4a4941;margin:0">{{ dashSub }}</p>
+        </div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#6b6a60">Tuesday, August 19</div>
+      </div>
+
+      <div style="background:#14140f;color:#f5f4ef;border-radius:28px;padding:34px 38px">
+        <div style="display:grid;grid-template-columns:auto 1fr auto;gap:44px;align-items:center">
+          <div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#a8a69b;margin-bottom:12px">Current streak</div>
+            <div style="display:flex;align-items:baseline;gap:12px">
+              <span style="font-family:'Space Grotesk',sans-serif;font-size:92px;font-weight:700;letter-spacing:-0.05em;line-height:0.86">{{ streak }}</span>
+              <span style="font-size:20px;color:#cdf06a;font-weight:600">days</span>
+            </div>
+            <div style="font-size:15px;color:#a8a69b;margin-top:10px">{{ level }} · {{ freezeNote }}</div>
+          </div>
+
+          <div>
+            <div style="display:grid;grid-template-columns:repeat(14,1fr);gap:7px;margin-bottom:16px">
+              <sc-for list="{{ days }}" as="d" hint-placeholder-count="14">
+                <div style="display:flex;flex-direction:column;gap:7px">
+                  <div style="{{ d.bigStyle }}" title="{{ d.tip }}"></div>
+
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;text-align:center;color:#a8a69b">{{ d.label }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:22px;flex-wrap:wrap;padding-top:16px;border-top:1px solid #2c2c24">
+              <sc-for list="{{ legend }}" as="l" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="{{ l.swatch }}"></div>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#a8a69b">{{ l.label }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="min-width:210px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#a8a69b;margin-bottom:12px">Next level</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;letter-spacing:-0.02em;margin-bottom:12px">{{ nextLevel }}</div>
+            <div style="height:8px;border-radius:99px;background:#2c2c24;overflow:hidden;margin-bottom:12px">
+              <div style="{{ tierFill }}"></div>
+            </div>
+            <div style="font-size:14px;line-height:1.5;color:#a8a69b;margin-bottom:18px">{{ tierNote }}</div>
+            <button onClick="{{ markReviewed }}" style="{{ todayChipStyle }}">{{ todayChip }}</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1.6fr;gap:18px">
+        <div style="background:#cdf06a;border-radius:26px;padding:30px 32px">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#3d5410;margin-bottom:12px">Safe to spend this week</div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:64px;font-weight:700;letter-spacing:-0.045em;line-height:1;margin-bottom:10px">{{ safeToSpend }}</div>
+          <div style="font-size:15px;color:#2c3b0d;margin-bottom:24px">{{ safeNote }}</div>
+          <div style="display:flex;flex-direction:column;gap:10px;padding-top:20px;border-top:2px solid rgba(20,20,15,0.16)">
+            <sc-for list="{{ safeRows }}" as="r" hint-placeholder-count="3">
+              <div style="display:flex;justify-content:space-between;font-size:14px;color:#2c3b0d">
+                <span>{{ r.label }}</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-weight:500">{{ r.value }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:26px;padding:30px 32px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:24px">
+            <h2 style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;letter-spacing:-0.02em;margin:0">Buckets · August</h2>
+            <button onClick="{{ goSpending }}" style="font-size:14px;font-weight:600;color:#1c6a48;background:none;border:none;cursor:pointer;padding:0">Manage</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:22px 32px">
+            <sc-for list="{{ buckets }}" as="b" hint-placeholder-count="4">
+              <div onClick="{{ b.go }}" style="cursor:pointer">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+                  <span style="font-size:15px;font-weight:600">{{ b.name }}</span>
+                  <span style="{{ b.paceStyle }}">{{ b.pace }}</span>
+                </div>
+                <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:9px">
+                  <span style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;letter-spacing:-0.02em">{{ b.used }}</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#6b6a60">of {{ b.limit }}</span>
+                </div>
+                <div style="height:8px;border-radius:99px;background:#eae8de;overflow:hidden">
+                  <div style="{{ b.fill }}"></div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px">
+        <div onClick="{{ goSubs }}" style="background:#ffffff;border:1px solid #e0ded4;border-radius:26px;padding:28px 30px;cursor:pointer" style-hover="border-color:#1c6a48">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#6b6a60;margin-bottom:14px">Subscriptions</div>
+          <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:16px">
+            <span style="font-family:'Space Grotesk',sans-serif;font-size:34px;font-weight:700;letter-spacing:-0.03em;line-height:1">{{ subsMonthly }}</span>
+            <span style="font-size:14px;color:#4a4941">a month</span>
+          </div>
+          <div style="{{ trialStyle }}">{{ trialNote }}</div>
+        </div>
+
+        <div onClick="{{ goGoals }}" style="background:#ffffff;border:1px solid #e0ded4;border-radius:26px;padding:28px 30px;cursor:pointer" style-hover="border-color:#1c6a48">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#6b6a60;margin-bottom:14px">Goals</div>
+          <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:16px">
+            <span style="font-family:'Space Grotesk',sans-serif;font-size:34px;font-weight:700;letter-spacing:-0.03em;line-height:1">{{ goalsSaved }}</span>
+            <span style="font-size:14px;color:#4a4941">across 3</span>
+          </div>
+          <div style="font-size:14px;line-height:1.5;color:#4a4941">{{ goalsNote }}</div>
+        </div>
+
+        <div onClick="{{ goLearn }}" style="background:#14140f;color:#f5f4ef;border-radius:26px;padding:28px 30px;cursor:pointer" style-hover="background:#1c6a48">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#a8a69b;margin-bottom:14px">Learn</div>
+          <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:16px">
+            <span style="font-family:'Space Grotesk',sans-serif;font-size:34px;font-weight:700;letter-spacing:-0.03em;line-height:1">{{ lessonsDone }}/{{ lessonsTotal }}</span>
+            <span style="font-size:14px;color:#a8a69b">lessons done</span>
+          </div>
+          <div style="font-size:14px;line-height:1.5;color:#a8a69b">{{ learnNote }}</div>
+        </div>
+
+        <div onClick="{{ goRecap }}" style="background:#ffffff;border:1px solid #e0ded4;border-radius:26px;padding:28px 30px;cursor:pointer" style-hover="border-color:#1c6a48">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#6b6a60;margin-bottom:14px">This week</div>
+          <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:16px">
+            <span style="font-family:'Space Grotesk',sans-serif;font-size:34px;font-weight:700;letter-spacing:-0.03em;line-height:1">$86</span>
+            <span style="font-size:14px;color:#1c6a48">−$18 vs last</span>
+          </div>
+          <div style="font-size:14px;line-height:1.5;color:#4a4941">Sunday recap is ready to read.</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+        <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:26px;padding:30px 32px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:20px">
+            <h2 style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;letter-spacing:-0.02em;margin:0">August so far</h2>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#6b6a60">day {{ dayOfMonth }} of 31</span>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:8px">
+            <span style="font-family:'Space Grotesk',sans-serif;font-size:44px;font-weight:700;letter-spacing:-0.035em;line-height:1">{{ monthSpent }}</span>
+            <span style="font-size:15px;color:#4a4941">of {{ monthBudget }} budgeted</span>
+          </div>
+          <div style="height:10px;border-radius:99px;background:#eae8de;overflow:hidden;margin:18px 0 10px;position:relative">
+            <div style="{{ monthFill }}"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6b6a60;margin-bottom:20px">
+            <span>{{ monthPctLabel }} spent</span>
+            <span>{{ monthTimeLabel }} of the month gone</span>
+          </div>
+          <div style="{{ monthVerdictStyle }}">{{ monthVerdict }}</div>
+        </div>
+
+        <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:26px;padding:30px 32px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:20px">
+            <h2 style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;letter-spacing:-0.02em;margin:0">Where it goes</h2>
+            <button onClick="{{ goRecap }}" style="font-size:14px;font-weight:600;color:#1c6a48;background:none;border:none;cursor:pointer;padding:0">Full recap</button>
+          </div>
+          <div style="display:flex;flex-direction:column">
+            <sc-for list="{{ topMerchants }}" as="m" hint-placeholder-count="4">
+              <div style="display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;padding:11px 0;border-bottom:1px solid #f0eee5">
+                <div>
+                  <div style="font-size:15px;margin-bottom:6px">{{ m.name }}</div>
+                  <div style="height:6px;border-radius:99px;background:#eae8de;overflow:hidden">
+                    <div style="{{ m.fill }}"></div>
+                  </div>
+                </div>
+                <div style="text-align:right">
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:14px">{{ m.amount }}</div>
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6b6a60">{{ m.count }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div style="{{ insightStyle }}">
+        <div style="display:flex;align-items:center;gap:28px;flex-wrap:wrap">
+          <div style="flex:1;min-width:280px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#3d5410;margin-bottom:10px">Pattern Tally noticed</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;letter-spacing:-0.025em;line-height:1.25;margin-bottom:8px">{{ insightTitle }}</div>
+            <div style="font-size:15px;line-height:1.5;color:#2c3b0d">{{ insightBody }}</div>
+          </div>
+          <button onClick="{{ goLearn }}" style="font-family:'IBM Plex Sans',sans-serif;font-size:15px;font-weight:600;min-height:48px;padding:0 24px;border:none;border-radius:14px;background:#14140f;color:#f5f4ef;cursor:pointer;flex:none" style-hover="background:#1c6a48">{{ insightCta }}</button>
+        </div>
+      </div>
+
+      <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:26px;padding:30px 32px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:20px">
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;letter-spacing:-0.02em;margin:0">Recent activity</h2>
+          <button onClick="{{ goSpending }}" style="font-size:14px;font-weight:600;color:#1c6a48;background:none;border:none;cursor:pointer;padding:0">All transactions</button>
+        </div>
+        <div style="display:flex;flex-direction:column">
+          <sc-for list="{{ recent }}" as="t" hint-placeholder-count="5">
+            <div style="display:grid;grid-template-columns:60px 1fr auto auto;gap:18px;align-items:center;padding:13px 0;border-bottom:1px solid #f0eee5">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#6b6a60">{{ t.day }}</span>
+              <span style="font-size:16px">{{ t.name }}</span>
+              <span style="{{ t.catStyle }}">{{ t.cat }}</span>
+              <span style="{{ t.amtStyle }}">{{ t.amount }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isLearn }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap">
+        <div>
+          <h1 style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;letter-spacing:-0.03em;margin:0 0 4px">Learn</h1>
+          <p style="font-size:15px;color:#4a4941;margin:0">Short lessons built from your own numbers. Two minutes each, no jargon.</p>
+        </div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#6b6a60">{{ lessonsDone }} of {{ lessonsTotal }} finished</div>
+      </div>
+
+      <div style="{{ featuredStyle }}">
+        <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:44px;align-items:center">
+          <div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#a8a69b;margin-bottom:14px">{{ featuredKicker }}</div>
+            <h2 style="font-family:'Space Grotesk',sans-serif;font-size:34px;line-height:1.1;letter-spacing:-0.03em;font-weight:700;margin:0 0 14px">{{ featuredTitle }}</h2>
+            <p style="font-size:17px;line-height:1.6;color:#b6b4a8;margin:0 0 24px">{{ featuredBody }}</p>
+            <button onClick="{{ featuredAct }}" style="{{ featuredBtn }}">{{ featuredCta }}</button>
+          </div>
+          <div style="background:#22221b;border-radius:20px;padding:26px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#a8a69b;margin-bottom:16px">From your account</div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <sc-for list="{{ featuredFacts }}" as="f" hint-placeholder-count="3">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding-bottom:12px;border-bottom:1px solid #34342b">
+                  <span style="font-size:14px;color:#b6b4a8">{{ f.label }}</span>
+                  <span style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;letter-spacing:-0.02em;color:#cdf06a">{{ f.value }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
+        <sc-for list="{{ lessons }}" as="l" hint-placeholder-count="6">
+          <div onClick="{{ l.act }}" style="{{ l.cardStyle }}">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px">
+              <span style="{{ l.tagStyle }}">{{ l.tag }}</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6b6a60">{{ l.mins }}</span>
+            </div>
+            <h3 style="font-family:'Space Grotesk',sans-serif;font-size:21px;font-weight:700;letter-spacing:-0.02em;line-height:1.2;margin:0 0 10px">{{ l.title }}</h3>
+            <p style="font-size:15px;line-height:1.5;color:#4a4941;margin:0 0 18px">{{ l.body }}</p>
+            <div style="{{ l.footStyle }}">{{ l.foot }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:26px;padding:30px 32px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:20px;flex-wrap:wrap;margin-bottom:22px">
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;letter-spacing:-0.02em;margin:0">Locked by level</h2>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#6b6a60">You are {{ level }} · {{ streak }}-day streak</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{ lockedLessons }}" as="l" hint-placeholder-count="3">
+            <div style="{{ l.rowStyle }}">
+              <div style="{{ l.lockDot }}"></div>
+              <div style="flex:1">
+                <div style="font-size:16px;font-weight:600;margin-bottom:3px">{{ l.title }}</div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#6b6a60">{{ l.need }}</div>
+              </div>
+              <span style="{{ l.statusStyle }}">{{ l.status }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isSpending }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div>
+        <h1 style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;letter-spacing:-0.03em;margin:0 0 4px">Spending</h1>
+        <p style="font-size:15px;color:#4a4941;margin:0">Tap a category on any transaction to fix it. Tally remembers the merchant next time.</p>
+      </div>
+
+      <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:26px;padding:30px 32px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:26px">
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;letter-spacing:-0.02em;margin:0">{{ periodTitle }}</h2>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <sc-for list="{{ periods }}" as="p" hint-placeholder-count="4">
+              <button onClick="{{ p.pick }}" style="{{ p.style }}">{{ p.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:0.9fr 1.6fr;gap:40px;align-items:center">
+          <div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#6b6a60;margin-bottom:10px">Total spent</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:58px;font-weight:700;letter-spacing:-0.045em;line-height:1;margin-bottom:10px">{{ periodTotal }}</div>
+            <div style="{{ periodDeltaStyle }}">{{ periodDelta }}</div>
+            <div style="display:flex;flex-direction:column;gap:11px;margin-top:24px;padding-top:20px;border-top:1px solid #eae8de">
+              <sc-for list="{{ periodStats }}" as="r" hint-placeholder-count="3">
+                <div style="display:flex;justify-content:space-between;font-size:14px">
+                  <span style="color:#4a4941">{{ r.label }}</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-weight:500">{{ r.value }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex;align-items:flex-end;gap:10px;height:172px;margin-bottom:16px">
+              <sc-for list="{{ periodBars }}" as="b" hint-placeholder-count="8">
+                <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%">
+                  <div style="{{ b.valStyle }}">{{ b.value }}</div>
+                  <div style="height:114px;flex:none;display:flex;align-items:flex-end;justify-content:center">
+                    <div style="{{ b.bar }}"></div>
+                  </div>
+                  <div style="{{ b.labelStyle }}">{{ b.label }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="font-size:15px;line-height:1.55;color:#4a4941">{{ periodInsight }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+        <sc-for list="{{ buckets }}" as="b" hint-placeholder-count="4">
+          <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:22px;padding:24px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px">
+              <span style="font-size:15px;font-weight:600">{{ b.name }}</span>
+              <span style="{{ b.paceStyle }}">{{ b.pace }}</span>
+            </div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;letter-spacing:-0.025em;line-height:1;margin-bottom:12px">{{ b.used }}</div>
+            <div style="height:8px;border-radius:99px;background:#eae8de;overflow:hidden;margin-bottom:14px">
+              <div style="{{ b.fill }}"></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <button onClick="{{ b.down }}" style="{{ b.stepStyle }}">−</button>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#4a4941;flex:1;text-align:center">limit {{ b.limit }}</span>
+              <button onClick="{{ b.up }}" style="{{ b.stepStyle }}">+</button>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:24px;padding:28px 32px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:18px">
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;letter-spacing:-0.02em;margin:0">Transactions</h2>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <sc-for list="{{ filters }}" as="f" hint-placeholder-count="5">
+              <button onClick="{{ f.pick }}" style="{{ f.style }}">{{ f.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column">
+          <sc-for list="{{ txns }}" as="t" hint-placeholder-count="8">
+            <div style="display:grid;grid-template-columns:56px 1fr auto auto;gap:18px;align-items:center;padding:14px 0;border-bottom:1px solid #f0eee5">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#6b6a60">{{ t.day }}</span>
+              <div>
+                <div style="font-size:16px;margin-bottom:3px">{{ t.name }}</div>
+                <div style="display:flex;gap:5px;flex-wrap:wrap">
+                  <sc-for list="{{ t.cats }}" as="c" hint-placeholder-count="4">
+                    <button onClick="{{ c.pick }}" style="{{ c.style }}">{{ c.label }}</button>
+                  </sc-for>
+                </div>
+              </div>
+              <span style="{{ t.flagStyle }}">{{ t.flag }}</span>
+              <span style="{{ t.amtStyle }}">{{ t.amount }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isGoals }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div>
+        <h1 style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;letter-spacing:-0.03em;margin:0 0 4px">Goals</h1>
+        <p style="font-size:15px;color:#4a4941;margin:0">Tally can't move your money. It tells you the transfer to make, then confirms it landed on the next sync.</p>
+      </div>
+
+      <sc-for list="{{ goals }}" as="g" hint-placeholder-count="3">
+        <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:24px;padding:28px 32px">
+          <div style="display:grid;grid-template-columns:1fr 1.3fr auto;gap:32px;align-items:center">
+            <div>
+              <div style="font-family:'Space Grotesk',sans-serif;font-size:23px;font-weight:700;letter-spacing:-0.02em;margin-bottom:5px">{{ g.name }}</div>
+              <div style="{{ g.paceStyle }}">{{ g.pace }}</div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px">
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;letter-spacing:-0.02em">{{ g.saved }}</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#6b6a60">of {{ g.target }} · {{ g.due }}</span>
+              </div>
+              <div style="height:9px;border-radius:99px;background:#eae8de;overflow:hidden">
+                <div style="{{ g.fill }}"></div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;min-width:190px">
+              <div style="{{ g.suggestStyle }}">{{ g.suggest }}</div>
+              <button onClick="{{ g.act }}" style="{{ g.btnStyle }}">{{ g.btnLabel }}</button>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isSubs }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap">
+        <div>
+          <h1 style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;letter-spacing:-0.03em;margin:0 0 4px">Subscriptions</h1>
+          <p style="font-size:15px;color:#4a4941;margin:0">Found by matching recurring charges in your transaction history.</p>
+        </div>
+        <div style="display:flex;gap:28px;flex-wrap:wrap">
+          <sc-for list="{{ subStats }}" as="s" hint-placeholder-count="3">
+            <div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#6b6a60;margin-bottom:5px">{{ s.label }}</div>
+              <div style="font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;letter-spacing:-0.025em;line-height:1">{{ s.value }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <sc-for list="{{ subs }}" as="s" hint-placeholder-count="5">
+        <div style="{{ s.rowStyle }}">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:5px">
+              <span style="font-size:18px;font-weight:600">{{ s.name }}</span>
+              <span style="{{ s.tagStyle }}">{{ s.tag }}</span>
+            </div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#4a4941">{{ s.meta }}</div>
+          </div>
+          <div style="text-align:right;margin-right:28px">
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;letter-spacing:-0.02em">{{ s.price }}</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6b6a60">{{ s.yearly }} a year</div>
+          </div>
+          <button onClick="{{ s.act }}" style="{{ s.btnStyle }}">{{ s.btnLabel }}</button>
+        </div>
+      </sc-for>
+
+      <div style="background:#e6e3d8;border-radius:20px;padding:22px 26px;font-size:14px;line-height:1.6;color:#4a4941">Tally can't cancel for you — no app can, without your login. It gives you the exact steps for each merchant and then confirms the charge stopped on your next sync.</div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isRecap }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap">
+        <div>
+          <h1 style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;letter-spacing:-0.03em;margin:0 0 4px">Week of Aug 24</h1>
+          <p style="font-size:15px;color:#4a4941;margin:0">Fifteen seconds. Then get on with your Sunday.</p>
+        </div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#6b6a60">Week 34 · 5 of 7 days logged</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:18px">
+        <div style="background:#14140f;color:#f5f4ef;border-radius:26px;padding:32px">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#a8a69b;margin-bottom:12px">Spent this week</div>
+          <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:28px">
+            <span style="font-family:'Space Grotesk',sans-serif;font-size:62px;font-weight:700;letter-spacing:-0.045em;line-height:1">$86</span>
+            <span style="font-size:15px;color:#cdf06a">$18 less than last week</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:15px">
+            <sc-for list="{{ recapBars }}" as="r" hint-placeholder-count="4">
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px">
+                  <span style="font-size:14px">{{ r.name }}</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#b6b4a8">{{ r.delta }}</span>
+                </div>
+                <div style="height:7px;background:#2c2c24;border-radius:99px;overflow:hidden">
+                  <div style="{{ r.fill }}"></div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="background:#cdf06a;border-radius:26px;padding:28px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#3d5410;margin-bottom:10px">Win of the week</div>
+            <div style="font-size:19px;font-weight:600;line-height:1.4">{{ recapWin }}</div>
+          </div>
+          <div style="{{ watchCardStyle }}">
+            <div style="{{ watchKickerStyle }}">{{ watchKicker }}</div>
+            <div style="font-size:19px;font-weight:600;line-height:1.4;margin-bottom:14px">{{ watchText }}</div>
+            <button onClick="{{ goSpending }}" style="font-family:'IBM Plex Sans',sans-serif;font-size:14px;font-weight:600;min-height:42px;padding:0 18px;border:1px solid #14140f;border-radius:12px;background:transparent;cursor:pointer" style-hover="background:#cdf06a">{{ watchCta }}</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+        <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:26px;padding:30px 32px">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#6b6a60;margin-bottom:20px">Where it went — top merchants</div>
+          <div style="display:flex;flex-direction:column">
+            <sc-for list="{{ merchants }}" as="m" hint-placeholder-count="5">
+              <div style="display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;padding:12px 0;border-bottom:1px solid #f0eee5">
+                <div>
+                  <div style="font-size:16px;margin-bottom:6px">{{ m.name }}</div>
+                  <div style="height:6px;border-radius:99px;background:#eae8de;overflow:hidden">
+                    <div style="{{ m.fill }}"></div>
+                  </div>
+                </div>
+                <div style="text-align:right">
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:15px">{{ m.amount }}</div>
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6b6a60">{{ m.count }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:26px;padding:30px 32px">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#6b6a60;margin-bottom:20px">When you spend</div>
+          <div style="display:flex;align-items:flex-end;gap:10px;height:150px;margin-bottom:18px">
+            <sc-for list="{{ dayPattern }}" as="d" hint-placeholder-count="7">
+              <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%">
+                <div style="{{ d.valStyle }}">{{ d.value }}</div>
+                <div style="height:96px;flex:none;display:flex;align-items:flex-end;justify-content:center">
+                  <div style="{{ d.bar }}"></div>
+                </div>
+                <div style="{{ d.labelStyle }}">{{ d.label }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="font-size:15px;line-height:1.5;color:#4a4941">{{ dayInsight }}</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
+        <sc-for list="{{ weekStats }}" as="w" hint-placeholder-count="3">
+          <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:26px;padding:28px 30px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#6b6a60;margin-bottom:14px">{{ w.label }}</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:34px;font-weight:700;letter-spacing:-0.03em;line-height:1;margin-bottom:8px">{{ w.value }}</div>
+            <div style="{{ w.noteStyle }}">{{ w.note }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:26px;padding:30px 32px">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#6b6a60;margin-bottom:18px">Compared to your last four weeks</div>
+        <div style="display:flex;align-items:flex-end;gap:14px;height:120px">
+          <sc-for list="{{ fourWeeks }}" as="w" hint-placeholder-count="4">
+            <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%">
+              <div style="{{ w.valStyle }}">{{ w.value }}</div>
+              <div style="height:70px;flex:none;display:flex;align-items:flex-end">
+                <div style="{{ w.bar }}"></div>
+              </div>
+              <div style="{{ w.labelStyle }}">{{ w.label }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isAccounts }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div>
+        <h1 style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;letter-spacing:-0.03em;margin:0 0 4px">Connected accounts</h1>
+        <p style="font-size:15px;color:#4a4941;margin:0">Read-only through Plaid. Tally can see these — it cannot move anything.</p>
+      </div>
+
+      <sc-for list="{{ accounts }}" as="a" hint-placeholder-count="2">
+        <div style="background:#ffffff;border:1px solid #e0ded4;border-radius:24px;padding:26px 30px;display:flex;align-items:center;gap:20px">
+          <div style="{{ a.dot }}"></div>
+          <div style="flex:1">
+            <div style="font-size:18px;font-weight:600;margin-bottom:4px">{{ a.name }}</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#4a4941">{{ a.meta }}</div>
+          </div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;letter-spacing:-0.02em;margin-right:24px">{{ a.balance }}</div>
+          <button onClick="{{ a.act }}" style="{{ a.btnStyle }}">{{ a.btnLabel }}</button>
+        </div>
+      </sc-for>
+
+      <div style="background:#ffffff;border:1px dashed #cac7bc;border-radius:24px;padding:30px;text-align:center">
+        <div style="font-size:17px;font-weight:600;margin-bottom:6px">Add another account</div>
+        <div style="font-size:14px;color:#4a4941;margin-bottom:18px">Checking, savings, or a card. More accounts means better categories.</div>
+        <button style="font-family:'IBM Plex Sans',sans-serif;font-size:15px;font-weight:600;min-height:46px;padding:0 24px;border:none;border-radius:12px;background:#1c6a48;color:#f7fbf6;cursor:pointer" style-hover="background:#14140f">Connect with Plaid</button>
+      </div>
+
+      <div style="background:#14140f;color:#f5f4ef;border-radius:24px;padding:30px">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#a8a69b;margin-bottom:18px">What Tally can and cannot do</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px">
+          <div>
+            <div style="font-size:15px;font-weight:600;color:#cdf06a;margin-bottom:12px">Can</div>
+            <div style="display:flex;flex-direction:column;gap:9px">
+              <sc-for list="{{ canDo }}" as="c" hint-placeholder-count="3">
+                <div style="font-size:15px;color:#b6b4a8">{{ c }}</div>
+              </sc-for>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:15px;font-weight:600;color:#cdf06a;margin-bottom:12px">Cannot</div>
+            <div style="display:flex;flex-direction:column;gap:9px">
+              <sc-for list="{{ cannotDo }}" as="c" hint-placeholder-count="3">
+                <div style="font-size:15px;color:#b6b4a8">{{ c }}</div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1320,&quot;height&quot;:1000}}">
+class Component extends DCLogic {
+  state = {
+    page: 'today',
+    cats: { 'Blue Line Coffee': 'Food', 'Riverside Cafe': 'Income', 'Campus Deli': 'Food' },
+    limits: { Food: 120, Fun: 80, Transport: 60, Saving: 60 },
+    spent: { Food: 62, Fun: 48, Transport: 21, Saving: 40 },
+    filter: 'All',
+    reviewed: false,
+    period: 'Week',
+    lessons: [],
+    goalState: { Concert: 'open', Laptop: 'open', Emergency: 'open' },
+    subsCancelled: [],
+    days: [1,1,1,0,1,1,1,1,1,1,1,1,1,1],
+    dayKind: ['pace','task','pace','freeze','pace','task','pace','pace','task','pace','pace','pace','task','pace']
+  };
+
+  money(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
+  go(p) { this.setState({ page: p }); window.scrollTo(0, 0); }
+
+  renderVals() {
+    const s = this.state;
+    const money = this.money;
+
+    const upcomingRaw = [
+      { day: 'Thu 21', d: 21, name: 'Gaming pass', amt: 9.99, why: 'Monthly, same date since March', tag: 'recurring', soon: false, income: false },
+      { day: 'Thu 21', d: 21, name: 'Fitness app', amt: 14.99, why: 'Free trial converts to paid', tag: 'trial', soon: true, income: false },
+      { day: 'Sat 23', d: 23, name: 'Phone bill', amt: 35.00, why: 'Monthly, same amount for 6 months', tag: 'recurring', soon: false, income: false },
+      { day: 'Mon 25', d: 25, name: 'Cloud storage', amt: 2.99, why: 'Free trial converts to paid', tag: 'trial', soon: true, income: false },
+      { day: 'Thu 28', d: 28, name: 'Music premium', amt: 5.99, why: 'Monthly, student rate', tag: 'recurring', soon: false, income: false },
+      { day: 'Fri 29', d: 29, name: 'Shift pay — Riverside Cafe', amt: 186.20, why: 'Every other Friday', tag: 'income', soon: false, income: true },
+      { day: 'Sun 31', d: 31, name: 'Streaming service', amt: 11.99, why: 'Monthly, same date since Jan', tag: 'recurring', soon: false, income: false }
+    ].filter(c => s.subsCancelled.indexOf(c.name) === -1);
+    const outTotal = upcomingRaw.filter(c => !c.income).reduce((a, c) => a + c.amt, 0);
+    const inTotal = upcomingRaw.filter(c => c.income).reduce((a, c) => a + c.amt, 0);
+
+    const subsRaw = [
+      { name: 'Streaming service', meta: 'Charged the 4th · since Jan', price: 11.99, tag: '' },
+      { name: 'Music premium', meta: 'Charged the 9th · student rate', price: 5.99, tag: '' },
+      { name: 'Fitness app', meta: 'Trial converts in 3 days', price: 14.99, tag: 'trial' },
+      { name: 'Cloud storage', meta: 'Trial converts in 6 days', price: 2.99, tag: 'trial' },
+      { name: 'Gaming pass', meta: 'Charged the 21st · since Mar', price: 9.99, tag: '' }
+    ];
+    const subs = subsRaw.map(x => {
+      const off = s.subsCancelled.indexOf(x.name) > -1;
+      const warn = x.tag === 'trial' && !off;
+      return {
+        name: x.name,
+        meta: off ? 'Cancelled — Tally will confirm on next sync' : x.meta,
+        price: '$' + x.price.toFixed(2),
+        yearly: money(x.price * 12),
+        tag: off ? 'cancelled' : x.tag,
+        tagStyle: (off || x.tag)
+          ? 'font-family:\'IBM Plex Mono\',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;padding:4px 9px;border-radius:999px;background:' + (off ? '#e6e3d8' : '#fcf8e9') + ';color:' + (off ? '#6b6a60' : '#8a6a12')
+          : 'display:none',
+        rowStyle: 'display:flex;align-items:center;padding:24px 30px;border-radius:22px;background:#ffffff;border:1px solid #e0ded4;border-left:4px solid ' + (off ? '#c9c6ba' : warn ? '#8a6a12' : '#1c6a48') + ';opacity:' + (off ? '0.62' : '1'),
+        btnLabel: off ? '✓ Cancelled' : 'How to cancel',
+        btnStyle: 'font-family:\'IBM Plex Sans\',sans-serif;font-size:14px;font-weight:600;min-height:44px;padding:0 20px;border-radius:12px;flex:none;border:1px solid ' + (off ? '#cac7bc' : '#14140f') + ';background:' + (off ? 'transparent' : warn ? '#14140f' : 'transparent') + ';color:' + (off ? '#6b6a60' : warn ? '#f5f4ef' : '#14140f') + ';cursor:' + (off ? 'default' : 'pointer'),
+        act: off ? () => {} : () => this.setState(st => ({ subsCancelled: st.subsCancelled.concat(x.name) }))
+      };
+    });
+    const activeSubs = subsRaw.filter(x => s.subsCancelled.indexOf(x.name) === -1);
+    const subTotal = activeSubs.reduce((a, x) => a + x.price, 0);
+    const trialCount = activeSubs.filter(x => x.tag === 'trial').length;
+    const cancelledYearly = subsRaw.filter(x => s.subsCancelled.indexOf(x.name) > -1).reduce((a, x) => a + x.price * 12, 0);
+
+    const limits = s.limits;
+    const dayOfMonth = 19, daysInMonth = 31, monthLeft = daysInMonth - dayOfMonth;
+    const buckets = ['Food','Fun','Transport','Saving'].map(name => {
+      const used = s.spent[name], limit = limits[name];
+      const p = Math.min(100, Math.round((used / limit) * 100));
+      const expected = (dayOfMonth / daysInMonth) * limit;
+      const ahead = used <= expected;
+      const over = used > limit;
+      const color = name === 'Saving'
+        ? (used >= expected ? '#1c6a48' : '#8a6a12')
+        : over ? '#b8422a' : ahead ? '#1c6a48' : '#8a6a12';
+      return {
+        name, used: money(used), limit: money(limit),
+        fill: 'width:' + p + '%;height:100%;border-radius:99px;transition:width 220ms ease;background:' + color,
+        pace: name === 'Saving'
+          ? (used >= expected ? 'ahead of target' : 'behind target')
+          : over ? money(used - limit) + ' over' : ahead ? 'on pace' : 'spending fast',
+        paceStyle: 'font-family:\'IBM Plex Mono\',monospace;font-size:11px;letter-spacing:0.04em;color:' + color,
+        stepStyle: 'width:34px;height:34px;border-radius:10px;border:1px solid #cac7bc;background:transparent;cursor:pointer;font-size:17px;line-height:1;color:#14140f',
+        up: () => this.setState(st => ({ limits: { ...st.limits, [name]: st.limits[name] + 5 } })),
+        down: () => this.setState(st => ({ limits: { ...st.limits, [name]: Math.max(10, st.limits[name] - 5) } })),
+        go: () => this.go('spending')
+      };
+    });
+
+    const offPace = buckets.filter(b => b.name !== 'Saving' && b.pace !== 'on pace');
+    const monthPct = Math.round((Object.keys(s.spent).reduce((a, k) => a + s.spent[k], 0) / Object.keys(limits).reduce((a, k) => a + limits[k], 0)) * 100);
+    const timePct = Math.round((dayOfMonth / daysInMonth) * 100);
+    const spendNames = ['Food','Fun','Transport'];
+    const worst = spendNames
+      .map(n => {
+        const used = s.spent[n], limit = limits[n];
+        const perDay = used / dayOfMonth;
+        return { name: n, used, limit, perDay, runout: perDay > 0 ? dayOfMonth + (limit - used) / perDay : 999 };
+      })
+      .sort((a, b) => a.runout - b.runout)[0];
+    const ordinal = (d) => {
+      const v = d % 100;
+      if (v >= 11 && v <= 13) return d + 'th';
+      return d + (['th','st','nd','rd'][d % 10] || 'th');
+    };
+    const onPaceToday = offPace.length === 0;
+    const dayCounts = onPaceToday || s.reviewed;
+    const totalLimit = Object.keys(limits).reduce((a, k) => a + limits[k], 0);
+    const totalSpent = Object.keys(s.spent).reduce((a, k) => a + s.spent[k], 0);
+    const upcoming = Math.round(outTotal);
+    const safe = Math.max(0, Math.round(((totalLimit - totalSpent - upcoming) / monthLeft) * 7));
+
+    const catNames = ['Food','Fun','Transport','Saving'];
+    const txnData = [
+      { day: 'Today', name: 'Blue Line Coffee', amount: '−$5.40', kind: 'out', flag: 'new merchant' },
+      { day: 'Today', name: 'Campus Deli', amount: '−$12.80', kind: 'out', flag: '' },
+      { day: 'Mon', name: 'Metro fare', amount: '−$2.75', kind: 'out', flag: '' },
+      { day: 'Sun', name: 'Streaming service', amount: '−$11.99', kind: 'out', flag: 'recurring' },
+      { day: 'Fri', name: 'Riverside Cafe', amount: '+$186.20', kind: 'in', flag: 'income?' },
+      { day: 'Fri', name: 'Gas — Shell', amount: '−$21.40', kind: 'out', flag: '' },
+      { day: 'Thu', name: 'Transfer to savings', amount: '−$15.00', kind: 'out', flag: '' },
+      { day: 'Wed', name: 'Fitness app', amount: '−$0.00', kind: 'out', flag: 'trial' }
+    ];
+    const defaultCat = (n) => n.indexOf('Metro') > -1 || n.indexOf('Gas') > -1 ? 'Transport'
+      : n.indexOf('Transfer') > -1 ? 'Saving'
+      : n.indexOf('Streaming') > -1 || n.indexOf('Fitness') > -1 ? 'Fun' : 'Food';
+
+    const txns = txnData
+      .filter(t => s.filter === 'All' || (s.cats[t.name] || defaultCat(t.name)) === s.filter)
+      .map(t => {
+        const active = s.cats[t.name] || defaultCat(t.name);
+        return {
+          day: t.day, name: t.name, amount: t.amount,
+          flag: t.flag,
+          flagStyle: t.flag
+            ? 'font-family:\'IBM Plex Mono\',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;padding:5px 10px;border-radius:999px;background:#f0eee5;color:#6b6a60'
+            : 'display:none',
+          amtStyle: 'font-family:\'IBM Plex Mono\',monospace;font-size:15px;text-align:right;min-width:82px;color:' + (t.kind === 'in' ? '#1c6a48' : '#14140f'),
+          cats: catNames.map(c => ({
+            label: c,
+            pick: () => this.setState(st => ({ cats: { ...st.cats, [t.name]: c } })),
+            style: 'font-family:\'IBM Plex Mono\',monospace;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;padding:5px 10px;border-radius:999px;cursor:pointer;border:1px solid ' + (active === c ? '#1c6a48' : '#e0ded4') + ';background:' + (active === c ? '#1c6a48' : 'transparent') + ';color:' + (active === c ? '#f7fbf6' : '#6b6a60')
+          }))
+        };
+      });
+
+    const goalDefs = [
+      { key: 'Concert', name: 'Concert fund', saved: 182, target: 250, due: '3 weeks', dueKind: 'relative', need: 12 },
+      { key: 'Laptop', name: 'New laptop', saved: 640, target: 900, due: 'Nov 2026', dueKind: 'date', need: 22 },
+      { key: 'Emergency', name: 'Emergency', saved: 318, target: 500, due: 'no deadline', dueKind: 'none', need: 0 }
+    ];
+    const goals = goalDefs.map(g => {
+      const st = s.goalState[g.key];
+      const saved = g.saved + (st === 'done' ? g.need : 0);
+      const p = Math.min(100, Math.round((saved / g.target) * 100));
+      const onPace = g.need === 0 || st !== 'open';
+      return {
+        name: g.name, saved: money(saved), target: money(g.target), due: g.due,
+        fill: 'width:' + p + '%;height:100%;border-radius:99px;background:' + (onPace ? '#1c6a48' : '#8a6a12'),
+        pace: st === 'done' ? 'on target' : st === 'pending' ? 'waiting on next sync' : g.need === 0 ? 'no pace to keep' : 'behind by ' + money(g.need),
+        paceStyle: 'font-family:\'IBM Plex Mono\',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:' + (st === 'done' ? '#1c6a48' : g.need === 0 ? '#6b6a60' : '#8a6a12'),
+        suggest: g.need === 0 ? 'Nothing needed' : st === 'done' ? money(g.need) + ' moved · counted' : 'Move ' + money(g.need) + ' this week',
+        suggestStyle: 'font-family:\'IBM Plex Mono\',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#6b6a60;text-align:center',
+        btnLabel: st === 'done' ? '✓ Confirmed' : st === 'pending' ? 'Mark it landed' : g.need === 0 ? 'On track' : 'Open my bank',
+        btnStyle: 'font-family:\'IBM Plex Sans\',sans-serif;font-size:14px;font-weight:600;min-height:44px;padding:0 20px;border-radius:12px;border:1px solid ' + (st === 'done' || g.need === 0 ? '#cac7bc' : '#14140f') + ';background:' + (st === 'pending' ? '#cdf06a' : st === 'done' || g.need === 0 ? 'transparent' : '#14140f') + ';color:' + (st === 'pending' ? '#14140f' : st === 'done' || g.need === 0 ? '#6b6a60' : '#f5f4ef') + ';cursor:' + (st === 'done' || g.need === 0 ? 'default' : 'pointer'),
+        act: (st === 'done' || g.need === 0) ? () => {} : () => this.setState(x => ({ goalState: { ...x.goalState, [g.key]: st === 'open' ? 'pending' : 'done' } }))
+      };
+    });
+
+    const goalsSavedTotal = goalDefs.reduce((a, g) => a + g.saved + (s.goalState[g.key] === 'done' ? g.need : 0), 0);
+    const behindGoal = goalDefs.filter(g => g.need > 0 && s.goalState[g.key] !== 'done')[0];
+    const movedTotal = goalDefs.reduce((a, g) => a + (s.goalState[g.key] === 'done' ? g.need : 0), 0);
+    const cash = (n) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const dueClause = (g) => g.dueKind === 'relative' ? ' with ' + g.due + ' left.'
+      : g.dueKind === 'date' ? ', due ' + g.due + '.'
+      : '.';
+    const goalsNoteText = behindGoal
+      ? behindGoal.name + ' is ' + money(behindGoal.target - behindGoal.saved) + ' short' + dueClause(behindGoal)
+      : 'Every goal is on target. Nothing to move this week.';
+
+    const projDates = [19].concat(upcomingRaw.map(c => c.d).filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a - b));
+    let running = 248.15 - movedTotal;
+    const proj = projDates.map(d => {
+      const hits = upcomingRaw.filter(c => c.d === d);
+      hits.forEach(c => { running += c.income ? c.amt : -c.amt; });
+      return { label: 'Aug ' + d, bal: Math.max(0, Math.round(running)), pay: hits.some(c => c.income) };
+    });
+    const projMax = Math.max.apply(null, proj.map(p => p.bal)) || 1;
+    const lowest = Math.min.apply(null, proj.map(p => p.bal));
+    const lowestIdx = proj.map(p => p.bal).indexOf(lowest);
+    const lowestDay = proj[lowestIdx].label;
+    const nextCharge = upcomingRaw.filter(c => !c.income)[0];
+
+    const period = s.period || 'Week';
+    const periodData = {
+      'Week': {
+        title: 'This week, day by day', total: 86, delta: '$18 less than last week', down: true, peak: 21,
+        bars: [{ label: 'Mon', amt: 8 }, { label: 'Tue', amt: 14 }, { label: 'Wed', amt: 21 }, { label: 'Thu', amt: 6 }, { label: 'Fri', amt: 12 }, { label: 'Sat', amt: 19 }, { label: 'Sun', amt: 6 }],
+        stats: [{ label: 'Daily average', value: '$12.29' }, { label: 'Biggest day', value: 'Wed · $21' }, { label: 'No-spend days', value: '0' }],
+        insight: 'Wednesday and Saturday carry most of the week. Both are social days — that is where the Fun bucket goes.'
+      },
+      'Month': {
+        title: 'August, week by week', total: 405, delta: '$34 less than July at this point', down: true, peak: 118,
+        bars: [{ label: 'Aug 3', amt: 118 }, { label: 'Aug 10', amt: 97 }, { label: 'Aug 17', amt: 104 }, { label: 'Aug 24', amt: 86 }],
+        stats: [{ label: 'Weekly average', value: '$101' }, { label: 'Trend', value: 'Down 4 weeks' }, { label: 'Left to spend', value: money(totalLimit - totalSpent) }],
+        insight: 'Four straight weeks of lower spending. The first week of the month is always your heaviest — that is when subscriptions land.'
+      },
+      '3 months': {
+        title: 'Last three months', total: 1284, delta: '$62 more than the prior three', down: false, peak: 468,
+        bars: [{ label: 'Jun', amt: 468 }, { label: 'Jul', amt: 411 }, { label: 'Aug', amt: 405 }],
+        stats: [{ label: 'Monthly average', value: '$428' }, { label: 'Best month', value: 'Aug · $405' }, { label: 'Subscriptions', value: money(subTotal * 3) }],
+        insight: 'June was your outlier — summer travel. Since then you have held steady around $410 a month.'
+      },
+      'Year': {
+        title: '2026 so far', total: 3210, delta: 'On pace for $4,815 this year', down: false, peak: 468,
+        bars: [{ label: 'Mar', amt: 392 }, { label: 'Apr', amt: 417 }, { label: 'May', amt: 356 }, { label: 'Jun', amt: 468 }, { label: 'Jul', amt: 411 }, { label: 'Aug', amt: 405 }],
+        stats: [{ label: 'Monthly average', value: '$408' }, { label: 'Lowest month', value: 'May · $356' }, { label: 'Recurring share', value: '11%' }],
+        insight: 'Your spending is remarkably flat month to month. That predictability is what makes the safe-to-spend number reliable.'
+      }
+    };
+    const pd = periodData[period];
+
+    let streak = 0;
+    for (let i = s.days.length - 1; i >= 0; i--) { if (s.days[i]) streak++; else break; }
+    const total = s.days.reduce((a, b) => a + b, 0);
+    const level = total >= 90 ? 'Compounder' : total >= 30 ? 'Builder' : total >= 8 ? 'Starter' : 'Rookie';
+    const nextTier = total >= 90 ? null : total >= 30 ? { name: 'Compounder', at: 90 } : total >= 8 ? { name: 'Builder', at: 30 } : { name: 'Starter', at: 8 };
+    const tierPct = nextTier ? Math.min(100, Math.round((total / nextTier.at) * 100)) : 100;
+
+    const doneLessons = s.lessons || [];
+    const lessonDefs = [
+      { id: 'subs', tag: 'Your data', mins: '2 min', title: 'What your subscriptions really cost', body: 'You pay ' + cash(subTotal) + ' a month across ' + activeSubs.length + ' services. Annualized, that is a number worth seeing once.', hook: money(subTotal * 12) + ' a year' },
+      { id: 'pace', tag: 'Budgeting', mins: '2 min', title: 'Why pacing beats budgeting', body: 'A monthly limit tells you nothing on the 12th. Pacing tells you whether today was fine.', hook: 'Uses your Fun bucket' },
+      { id: 'trial', tag: 'Your data', mins: '1 min', title: 'The free-trial trap', body: 'Trials convert because nobody remembers the date. You have had ' + trialCount + ' running this month.', hook: 'Costs $0 to fix' },
+      { id: 'credit', tag: 'Credit', mins: '3 min', title: 'What a credit score actually measures', body: 'It is not how much money you have. It is whether you pay on time, and for how long you have been doing it.', hook: 'Before you need one' },
+      { id: 'emergency', tag: 'Saving', mins: '2 min', title: 'How big an emergency fund should be', body: 'The $1,000 rule you have heard is wrong for most students. Here is the version that fits your actual expenses.', hook: 'Yours: ' + money(405) },
+      { id: 'compound', tag: 'Investing', mins: '3 min', title: 'Compounding, in one chart', body: 'The reason starting at 19 beats starting at 29, even if you put in half as much.', hook: 'The whole argument' }
+    ].map(l => ({ ...l, done: doneLessons.indexOf(l.id) > -1 }));
+
+    const featuredBase = lessonDefs.filter(l => !l.done)[0] || lessonDefs[0];
+    const featured = {
+      id: featuredBase.id, title: featuredBase.title, body: featuredBase.body, done: featuredBase.done,
+      facts: featuredBase.id === 'subs'
+        ? [{ label: 'Per month', value: cash(subTotal) }, { label: 'Per year', value: money(subTotal * 12) }, { label: 'Share of spending', value: '11%' }]
+        : [{ label: 'Spent this month', value: money(totalSpent) }, { label: 'Left in buckets', value: money(totalLimit - totalSpent) }, { label: 'Days logged', value: String(total) }]
+    };
+    const openLessons = lessonDefs.filter(l => l.id !== featured.id);
+    const lockedDefs = [
+      { title: 'Reading a pay stub', at: 8 },
+      { title: 'Renting your first place', at: 30 },
+      { title: 'Index funds without the hype', at: 90 }
+    ];
+    const learnBadge = lessonDefs.filter(l => !l.done).length > 3 ? 'new' : '';
+
+    const kindColor = { pace: '#1c6a48', task: '#cdf06a', freeze: '#4a4941' };
+    const kindTip = { pace: 'Stayed under pace', task: 'Cleared the day\u2019s task', freeze: 'Freeze used' };
+
+
+    const tabDefs = [
+      { key: 'today', label: 'Today', badge: offPace.length ? String(offPace.length) : '' },
+      { key: 'spending', label: 'Spending', badge: '' },
+      { key: 'goals', label: 'Goals', badge: '' },
+      { key: 'learn', label: 'Learn', badge: learnBadge },
+      { key: 'subs', label: 'Subscriptions', badge: trialCount ? String(trialCount) : '' },
+      { key: 'recap', label: 'Recap', badge: '' },
+      { key: 'accounts', label: 'Accounts', badge: '' }
+    ];
+
+    return {
+      tabs: tabDefs.map(t => ({
+        label: t.label, badge: t.badge, go: () => this.go(t.key),
+        style: 'display:flex;align-items:center;gap:8px;font-family:\'IBM Plex Sans\',sans-serif;font-size:15px;font-weight:' + (s.page === t.key ? '600' : '500') + ';padding:9px 16px;border:none;border-radius:999px;cursor:pointer;background:' + (s.page === t.key ? '#14140f' : 'transparent') + ';color:' + (s.page === t.key ? '#f5f4ef' : '#4a4941'),
+        badgeStyle: t.badge
+          ? 'font-family:\'IBM Plex Mono\',monospace;font-size:10px;min-width:18px;height:18px;padding:0 5px;border-radius:99px;display:flex;align-items:center;justify-content:center;background:#cdf06a;color:#14140f'
+          : 'display:none'
+      })),
+      isToday: s.page === 'today', isSpending: s.page === 'spending', isGoals: s.page === 'goals',
+      isSubs: s.page === 'subs', isRecap: s.page === 'recap', isAccounts: s.page === 'accounts',
+      isLearn: s.page === 'learn', goLearn: () => this.go('learn'),
+      lessonsDone: doneLessons.length, lessonsTotal: lessonDefs.length,
+      learnNote: doneLessons.length === lessonDefs.length
+        ? 'All caught up. New lesson unlocks at 30 days.'
+        : 'Next: ' + featured.title.toLowerCase() + '.',
+
+      featuredStyle: 'background:#14140f;color:#f5f4ef;border-radius:28px;padding:36px 40px',
+      featuredKicker: featured.done ? 'Finished · revisit anytime' : 'Start here',
+      featuredTitle: featured.title,
+      featuredBody: featured.body,
+      featuredCta: featured.done ? '✓ Finished' : 'Start the lesson',
+      featuredBtn: 'font-family:\'IBM Plex Sans\',sans-serif;font-size:15px;font-weight:600;min-height:48px;padding:0 26px;border-radius:14px;border:1px solid ' + (featured.done ? '#3a3a30' : '#cdf06a') + ';background:' + (featured.done ? 'transparent' : '#cdf06a') + ';color:' + (featured.done ? '#a8a69b' : '#14140f') + ';cursor:' + (featured.done ? 'default' : 'pointer'),
+      featuredAct: featured.done ? () => {} : () => this.setState(st => ({ lessons: st.lessons.concat(featured.id) })),
+      featuredFacts: featured.facts,
+
+      lessons: openLessons.map(l => ({
+        title: l.title, body: l.body, mins: l.mins, tag: l.tag,
+        cardStyle: 'background:#ffffff;border:1px solid ' + (l.done ? '#cdf06a' : '#e0ded4') + ';border-radius:24px;padding:26px 28px;cursor:pointer',
+        tagStyle: 'font-family:\'IBM Plex Mono\',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;border-radius:999px;background:' + (l.done ? '#cdf06a' : '#f0eee5') + ';color:' + (l.done ? '#3d5410' : '#6b6a60'),
+        foot: l.done ? '✓ Finished' : l.hook,
+        footStyle: 'font-size:14px;font-weight:600;color:' + (l.done ? '#1c6a48' : '#8a6a12'),
+        act: l.done ? () => {} : () => this.setState(st => ({ lessons: st.lessons.concat(l.id) }))
+      })),
+
+      lockedLessons: lockedDefs.map(l => {
+        const unlocked = total >= l.at;
+        return {
+          title: l.title, need: unlocked ? 'Unlocked at ' + l.at + ' days' : 'Unlocks at ' + l.at + ' habit days',
+          rowStyle: 'display:flex;align-items:center;gap:16px;padding:18px 20px;border-radius:18px;border:1px solid #e0ded4;background:' + (unlocked ? '#ffffff' : '#f5f4ef') + ';opacity:' + (unlocked ? '1' : '0.72'),
+          lockDot: 'width:10px;height:10px;border-radius:99px;flex:none;background:' + (unlocked ? '#1c6a48' : '#c9c6ba'),
+          status: unlocked ? 'Available' : (l.at - total) + ' days away',
+          statusStyle: 'font-family:\'IBM Plex Mono\',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:' + (unlocked ? '#1c6a48' : '#6b6a60')
+        };
+      }),
+
+      goSpending: () => this.go('spending'),
+
+      subs,
+      subStats: [
+        { label: 'Active', value: String(activeSubs.length) },
+        { label: 'Per month', value: '$' + subTotal.toFixed(2) },
+        { label: 'Per year', value: money(subTotal * 12) }
+      ],
+
+      recapWin: cancelledYearly > 0
+        ? 'You cancelled ' + (s.subsCancelled.length === 1 ? 'a subscription' : s.subsCancelled.length + ' subscriptions') + ' — that is ' + money(cancelledYearly) + ' a year you kept.'
+        : 'You spent $18 less than last week, and Fun came in $11 under.',
+      watchKicker: offPace.length === 0 ? 'All clear' : 'Watch next week',
+      watchKickerStyle: 'font-family:\'IBM Plex Mono\',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:10px;color:' + (offPace.length === 0 ? '#1c6a48' : '#8a6a12'),
+      watchCardStyle: 'background:#ffffff;border:1px solid #e0ded4;border-left:4px solid ' + (offPace.length === 0 ? '#1c6a48' : '#8a6a12') + ';border-radius:26px;padding:28px',
+      watchText: offPace.length === 0
+        ? worst.name + ' is your tightest bucket — at this pace it lasts until the ' + ordinal(Math.min(31, Math.round(worst.runout))) + '.'
+        : offPace[0].name + ' is spending fast — at this pace it runs out on the ' + ordinal(Math.min(31, Math.round(worst.runout))) + '.',
+      watchCta: offPace.length === 0 ? 'Review buckets' : 'Adjust the limit',
+
+      merchants: [
+        { name: 'Campus Deli', amt: 26, count: '3 visits' },
+        { name: 'Blue Line Coffee', amt: 21, count: '5 visits' },
+        { name: 'Shell', amt: 21, count: '1 visit' },
+        { name: 'Streaming service', amt: 12, count: '1 charge' },
+        { name: 'Metro', amt: 6, count: '2 rides' }
+      ].map(m => ({
+        name: m.name, amount: money(m.amt), count: m.count,
+        fill: 'width:' + Math.round((m.amt / 26) * 100) + '%;height:100%;border-radius:99px;background:#1c6a48'
+      })),
+
+      dayPattern: [
+        { label: 'M', amt: 8 }, { label: 'T', amt: 14 }, { label: 'W', amt: 21 },
+        { label: 'T', amt: 6 }, { label: 'F', amt: 12 }, { label: 'S', amt: 19 }, { label: 'S', amt: 6 }
+      ].map((d, i) => {
+        const peak = d.amt === 21;
+        return {
+          label: d.label, value: peak ? money(d.amt) : '',
+          valStyle: 'font-family:\'IBM Plex Mono\',monospace;font-size:11px;text-align:center;height:16px;flex:none;color:#8a6a12',
+          bar: 'width:100%;max-width:30px;margin:0 auto;flex:none;border-radius:6px;height:' + Math.max(8, Math.round((d.amt / 21) * 96)) + 'px;background:' + (peak ? '#8a6a12' : '#1c6a48'),
+          labelStyle: 'font-family:\'IBM Plex Mono\',monospace;font-size:11px;text-align:center;flex:none;padding-top:8px;color:#6b6a60'
+        };
+      }),
+      dayInsight: 'Wednesday is consistently your most expensive day — $21 this week, $19 last week. Worth knowing before you make plans.',
+
+      weekStats: [
+        { label: 'Days logged', value: '5 of 7', note: 'One freeze used Thursday', good: true },
+        { label: 'Saved this week', value: money(movedTotal || 12), note: movedTotal > 0 ? 'Transfer confirmed' : 'One transfer pending', good: movedTotal > 0 },
+        { label: 'Left in buckets', value: money(totalLimit - totalSpent), note: monthLeft + ' days to stretch it', good: true }
+      ].map(w => ({
+        label: w.label, value: w.value, note: w.note,
+        noteStyle: 'font-size:14px;line-height:1.5;color:' + (w.good ? '#1c6a48' : '#8a6a12')
+      })),
+
+      fourWeeks: [
+        { label: 'Aug 3', amt: 118 }, { label: 'Aug 10', amt: 97 },
+        { label: 'Aug 17', amt: 104 }, { label: 'This week', amt: 86 }
+      ].map((w, i) => {
+        const now = i === 3;
+        return {
+          label: w.label, value: money(w.amt),
+          valStyle: 'font-family:\'IBM Plex Mono\',monospace;font-size:12px;height:18px;flex:none;color:' + (now ? '#1c6a48' : '#6b6a60'),
+          bar: 'width:100%;max-width:40px;border-radius:8px;height:' + Math.round((w.amt / 118) * 70) + 'px;background:' + (now ? '#1c6a48' : '#c9c6ba'),
+          labelStyle: 'font-family:\'IBM Plex Mono\',monospace;font-size:11px;flex:none;padding-top:10px;color:' + (now ? '#14140f' : '#6b6a60')
+        };
+      }),
+
+      recapBars: [
+        { name: 'Food', spent: 34, prev: 41 },
+        { name: 'Fun', spent: 28, prev: 39 },
+        { name: 'Transport', spent: 18, prev: 16 },
+        { name: 'Saving', spent: 6, prev: 8 }
+      ].map(r => {
+        const diff = r.spent - r.prev;
+        return {
+          name: r.name,
+          delta: (diff > 0 ? '+' : '−') + money(Math.abs(diff)) + ' vs last week',
+          fill: 'width:' + Math.round((r.spent / 41) * 100) + '%;height:100%;border-radius:99px;background:' + (diff > 0 ? '#8a6a12' : '#cdf06a')
+        };
+      }),
+
+      accounts: [
+        { name: 'Chase College Checking', meta: movedTotal > 0 ? '•••• 4417 · read-only · ' + cash(movedTotal) + ' moved out today' : '•••• 4417 · read-only · synced 4m ago', balance: cash(248.15 - movedTotal), live: true },
+        { name: 'Chase Savings', meta: '•••• 9032 · read-only · synced 4m ago', balance: cash(goalsSavedTotal), live: true }
+      ].map(a => ({
+        name: a.name, meta: a.meta, balance: a.balance,
+        dot: 'width:10px;height:10px;border-radius:99px;flex:none;background:#1c6a48',
+        btnLabel: 'Disconnect',
+        btnStyle: 'font-family:\'IBM Plex Sans\',sans-serif;font-size:14px;font-weight:600;min-height:44px;padding:0 20px;border-radius:12px;flex:none;border:1px solid #cac7bc;background:transparent;color:#4a4941;cursor:pointer',
+        act: () => {}
+      })),
+      canDo: [
+        'Read transactions and balances',
+        'Categorize spending into buckets',
+        'Spot recurring charges and trials',
+        'Tell you the transfer to make'
+      ],
+      cannotDo: [
+        'Move, send, or withdraw money',
+        'See or store your bank password',
+        'Open accounts or issue a card',
+        'Sell your transaction data'
+      ],
+
+      dashSub: onPaceToday
+        ? 'Every bucket is on pace. Today already counts.'
+        : offPace.length + (offPace.length === 1 ? ' bucket is' : ' buckets are') + ' spending fast — worth a look.',
+      goSubs: () => this.go('subs'), goGoals: () => this.go('goals'), goRecap: () => this.go('recap'),
+
+      freezeNote: 'freeze available this week',
+      nextLevel: nextTier ? nextTier.name : 'Top level',
+      tierFill: 'width:' + tierPct + '%;height:100%;border-radius:99px;background:#cdf06a;transition:width 220ms ease',
+      tierNote: nextTier
+        ? (nextTier.at - total) + ' more days to unlock ' + nextTier.name + '.'
+        : 'You have unlocked everything Tally has.',
+      todayChip: dayCounts
+        ? (onPaceToday ? '✓ Today counts — under pace' : '✓ Today counts — reviewed')
+        : 'Mark today reviewed',
+      todayChipStyle: 'width:100%;font-family:\'IBM Plex Mono\',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;padding:13px 14px;border-radius:999px;text-align:center;border:1px solid ' + (dayCounts ? '#cdf06a' : '#cdf06a') + ';background:' + (dayCounts ? '#cdf06a' : 'transparent') + ';color:' + (dayCounts ? '#14140f' : '#cdf06a') + ';cursor:' + (dayCounts ? 'default' : 'pointer'),
+      markReviewed: dayCounts ? () => {} : () => this.setState({ reviewed: true }),
+      legend: [
+        { label: 'Stayed under pace', swatch: 'width:11px;height:11px;border-radius:4px;background:#1c6a48' },
+        { label: 'Cleared a task', swatch: 'width:11px;height:11px;border-radius:4px;background:#cdf06a' },
+        { label: 'Freeze used', swatch: 'width:11px;height:11px;border-radius:4px;background:#4a4941' }
+      ],
+
+      dayOfMonth: dayOfMonth,
+      monthSpent: money(totalSpent), monthBudget: money(totalLimit),
+      monthFill: 'width:' + monthPct + '%;height:100%;border-radius:99px;transition:width 220ms ease;background:' + (monthPct > timePct + 8 ? '#8a6a12' : '#1c6a48'),
+      monthPctLabel: monthPct + '%', monthTimeLabel: timePct + '%',
+      monthVerdict: monthPct > timePct + 8
+        ? 'You are spending faster than the month is passing. ' + money(totalLimit - totalSpent) + ' has to cover ' + monthLeft + ' days.'
+        : 'You are ' + (timePct - monthPct) + ' points ahead of the calendar. ' + money(totalLimit - totalSpent) + ' left for ' + monthLeft + ' days.',
+      monthVerdictStyle: 'font-size:15px;line-height:1.55;padding:14px 16px;border-radius:14px;background:' + (monthPct > timePct + 8 ? '#fcf8e9' : '#f2f8ee') + ';color:' + (monthPct > timePct + 8 ? '#8a6a12' : '#1c6a48'),
+
+      topMerchants: [
+        { name: 'Campus Deli', amt: 26, count: '3 visits' },
+        { name: 'Blue Line Coffee', amt: 21, count: '5 visits' },
+        { name: 'Shell', amt: 21, count: '1 visit' },
+        { name: 'Metro', amt: 6, count: '2 rides' }
+      ].map(m => ({
+        name: m.name, amount: money(m.amt), count: m.count,
+        fill: 'width:' + Math.round((m.amt / 26) * 100) + '%;height:100%;border-radius:99px;background:#1c6a48'
+      })),
+
+      insightStyle: 'background:#cdf06a;border-radius:26px;padding:30px 32px',
+      insightTitle: 'Five coffees a week is ' + money(21 * 52) + ' a year.',
+      insightBody: 'Blue Line Coffee is your most frequent merchant — 5 visits this week, $21. Not saying stop. Just so you have seen the number.',
+      insightCta: 'Read the lesson',
+
+      subsMonthly: '$' + subTotal.toFixed(2),
+      trialNote: trialCount > 0 ? trialCount + ' trial' + (trialCount > 1 ? 's' : '') + ' converting this week' : 'No trials converting',
+      trialStyle: 'font-size:14px;line-height:1.5;color:' + (trialCount > 0 ? '#8a6a12' : '#4a4941'),
+      goalsSaved: money(goalsSavedTotal), goalsNote: goalsNoteText,
+
+      recent: txnData.slice(0, 5).map(t => ({
+        day: t.day, name: t.name, amount: t.amount,
+        cat: s.cats[t.name] || defaultCat(t.name),
+        catStyle: 'font-family:\'IBM Plex Mono\',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;padding:5px 10px;border-radius:999px;background:#f0eee5;color:#6b6a60',
+        amtStyle: 'font-family:\'IBM Plex Mono\',monospace;font-size:15px;text-align:right;min-width:82px;color:' + (t.kind === 'in' ? '#1c6a48' : '#14140f')
+      })),
+
+      safeToSpend: money(safe), safeNote: monthLeft + ' days left in the month',
+      safeRows: [
+        { label: 'Left in buckets', value: money(totalLimit - totalSpent) },
+        { label: 'Bills still due', value: '−' + money(upcoming) },
+        { label: 'Per week from here', value: money(safe) }
+      ],
+
+      periods: ['Week','Month','3 months','Year'].map(p => ({
+        label: p, pick: () => this.setState({ period: p }),
+        style: 'font-family:\'IBM Plex Sans\',sans-serif;font-size:13px;font-weight:500;padding:9px 15px;border-radius:999px;cursor:pointer;border:1px solid ' + (period === p ? '#14140f' : '#dcdad1') + ';background:' + (period === p ? '#14140f' : 'transparent') + ';color:' + (period === p ? '#f5f4ef' : '#4a4941')
+      })),
+      periodTitle: pd.title,
+      periodTotal: money(pd.total),
+      periodDelta: pd.delta,
+      periodDeltaStyle: 'font-size:15px;color:' + (pd.down ? '#1c6a48' : '#8a6a12'),
+      periodStats: pd.stats,
+      periodInsight: pd.insight,
+      periodBars: pd.bars.map(b => ({
+        label: b.label,
+        value: b.amt === pd.peak ? money(b.amt) : '',
+        valStyle: 'font-family:\'IBM Plex Mono\',monospace;font-size:11px;text-align:center;height:16px;flex:none;color:#8a6a12',
+        bar: 'width:100%;max-width:34px;flex:none;border-radius:6px;height:' + Math.max(8, Math.round((b.amt / pd.peak) * 114)) + 'px;background:' + (b.amt === pd.peak ? '#8a6a12' : '#1c6a48'),
+        labelStyle: 'font-family:\'IBM Plex Mono\',monospace;font-size:11px;text-align:center;flex:none;padding-top:9px;color:#6b6a60'
+      })),
+
+      buckets, filters: ['All'].concat(catNames).map(f => ({
+        label: f, pick: () => this.setState({ filter: f }),
+        style: 'font-family:\'IBM Plex Sans\',sans-serif;font-size:13px;font-weight:500;padding:8px 14px;border-radius:999px;cursor:pointer;border:1px solid ' + (s.filter === f ? '#14140f' : '#dcdad1') + ';background:' + (s.filter === f ? '#14140f' : 'transparent') + ';color:' + (s.filter === f ? '#f5f4ef' : '#4a4941')
+      })),
+      txns, goals,
+
+      streak, level,
+      streakState: dayCounts ? 'Today counts' : 'Not yet today',
+      streakRule: 'A day counts if you stay under pace in every bucket, or clear what Tally asks. One freeze a week.',
+      days: s.days.map((on, i) => ({
+        label: ['M','T','W','T','F','S','S','M','T','W','T','F','S','S'][i],
+        miniStyle: 'height:24px;border-radius:6px;background:' + (on ? kindColor[s.dayKind[i]] : '#eae8de'),
+        bigStyle: 'height:52px;border-radius:6px;background:' + (on ? kindColor[s.dayKind[i]] : '#2c2c24'),
+        tip: on ? kindTip[s.dayKind[i]] : 'Missed'
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -356,7 +356,8 @@ export default function AccessForm() {
         </div>
         <p style={c('text-align:center;font-size:12px;line-height:1.6;color:#9a988c;margin:14px auto 0;max-width:34em')}>
           Tally is read-only and is not a bank. By continuing you agree to the{' '}
-          <Link href={`${APP}/site`}>Terms</Link> and <Link href={`${APP}/site`}>Privacy Policy</Link>.
+          <Link href={`${APP}/legal/terms`}>Terms</Link> and{' '}
+          <Link href={`${APP}/legal/privacy`}>Privacy Policy</Link>.
         </p>
       </div>
     </div>

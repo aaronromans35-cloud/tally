@@ -839,7 +839,7 @@ function Recap({ m }: { m: TallyModel }) {
     <div style={c('display:flex;flex-direction:column;gap:18px')}>
       <div style={c('display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap')}>
         <div>
-          <h1 style={h1(30)}>Week of Aug 24</h1>
+          <h1 style={h1(30)}>{m.weekLabel}</h1>
           <p style={c('font-size:15px;color:#4a4941;margin:0')}>
             Fifteen seconds. Then get on with your Sunday.
           </p>

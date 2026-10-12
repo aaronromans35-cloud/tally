@@ -618,7 +618,7 @@ function MRecap({ m }: { m: TallyModel }) {
   return (
     <>
       <div>
-        <h1 style={display('font-size:22px;font-weight:700;letter-spacing:-0.03em;margin:0 0 3px')}>Week of Aug 24</h1>
+        <h1 style={display('font-size:22px;font-weight:700;letter-spacing:-0.03em;margin:0 0 3px')}>{m.weekLabel}</h1>
         <div style={mono('font-size:11px;color:#6b6a60')}>Week 34 · 5 of 7 days logged</div>
       </div>
 

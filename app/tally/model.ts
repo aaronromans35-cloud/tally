@@ -115,6 +115,14 @@ export function deriveModel(
   const today = todayIso(now)
   const monthLabel = now.toLocaleDateString('en-US', { month: 'long' })
 
+  /** "Week of Oct 6" — the Monday of the current week. */
+  const weekLabel = (() => {
+    const monday = new Date(now)
+    // getDay(): 0 = Sunday, so shift Sunday back a full six days.
+    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7))
+    return `Week of ${monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+  })()
+
   /* ── Plan, resolved first because history visibility depends on it ── */
   const tier: Tier = s.tier ?? 'free'
   const ent = entitlementsFor(tier)
@@ -573,6 +581,115 @@ export function deriveModel(
       ? 'No goals yet. Add one and Tally will work out the weekly number.'
       : 'Every goal is on target. Nothing to move this week.'
 
+  /* ── Period analytics, derived ───────────────────────────────────────────
+     The Week and Month views were fabricated constants ($86, "Wed · $21",
+     bars labelled Aug 3–Aug 24), so the charts never moved no matter what the
+     user recorded, and every month claimed to be August. These now read the
+     ledger.
+  ──────────────────────────────────────────────────────────────────────── */
+  /** Outflow in dollars on a given ISO date. */
+  const outflowOn = (dateIso: string): number =>
+    toDollars(
+      s.txns.filter((t) => t.date === dateIso && t.cents < 0).reduce((a, t) => a + -t.cents, 0),
+    )
+
+  const mondayOf = (d: Date): Date => {
+    const m = new Date(d)
+    m.setDate(m.getDate() - ((m.getDay() + 6) % 7)) // getDay(): 0 = Sunday
+    m.setHours(0, 0, 0, 0)
+    return m
+  }
+
+  const thisMonday = mondayOf(now)
+  const weekBars = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(thisMonday)
+    d.setDate(d.getDate() + i)
+    return {
+      label: d.toLocaleDateString('en-US', { weekday: 'short' }),
+      amt: Math.round(outflowOn(iso(d))),
+    }
+  })
+  const weekTotal = weekBars.reduce((a, b) => a + b.amt, 0)
+  const weekPeak = weekBars.reduce((hi, b) => (b.amt > hi.amt ? b : hi), weekBars[0])
+
+  const lastWeekTotal = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(thisMonday)
+    d.setDate(d.getDate() - 7 + i)
+    return outflowOn(iso(d))
+  }).reduce((a, b) => a + b, 0)
+
+  const weekDiff = Math.round(Math.abs(weekTotal - lastWeekTotal))
+  const weekDelta =
+    lastWeekTotal === 0
+      ? 'First week with data'
+      : weekTotal <= lastWeekTotal
+        ? `${money(weekDiff)} less than last week`
+        : `${money(weekDiff)} more than last week`
+
+  const weekInsight =
+    weekTotal === 0
+      ? 'Nothing recorded this week yet. Add a few transactions and this fills in.'
+      : `${weekPeak.label} is your heaviest day so far at ${money(weekPeak.amt)}. ${
+          weekBars.filter((b) => b.amt === 0).length > 0
+            ? `You had ${weekBars.filter((b) => b.amt === 0).length} no-spend day${weekBars.filter((b) => b.amt === 0).length === 1 ? '' : 's'}.`
+            : 'No no-spend days this week.'
+        }`
+
+  /** Current month, bucketed into calendar weeks. */
+  const monthBars = (() => {
+    const out: { label: string; amt: number }[] = []
+    for (let start = 1; start <= dayOfMonth; start += 7) {
+      const end = Math.min(start + 6, dayOfMonth)
+      let amt = 0
+      for (let d = start; d <= end; d++) {
+        const day = new Date(now.getFullYear(), now.getMonth(), d)
+        amt += outflowOn(iso(day))
+      }
+      out.push({
+        label: `${now.toLocaleDateString('en-US', { month: 'short' })} ${start}`,
+        amt: Math.round(amt),
+      })
+    }
+    return out.length ? out : [{ label: monthLabel, amt: 0 }]
+  })()
+  const monthTotal = monthBars.reduce((a, b) => a + b.amt, 0)
+
+  const monthInsight =
+    monthTotal === 0
+      ? 'No spending recorded this month yet.'
+      : `You're ${Math.round((dayOfMonth / daysInMonth) * 100)}% through the month and ${
+          totalLimit > 0 ? Math.round((totalSpent / totalLimit) * 100) : 0
+        }% through your budget.${
+          totalSpent <= (dayOfMonth / daysInMonth) * totalLimit
+            ? ' That is ahead of pace.'
+            : ' That is running hot.'
+        }`
+
+  /** Outflow in dollars for a calendar month offset back from this one. */
+  const monthTotalBack = (back: number): { label: string; amt: number; key: string } => {
+    const d = new Date(now.getFullYear(), now.getMonth() - back, 1)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const amt = s.txns
+      .filter((t) => t.cents < 0 && t.date.slice(0, 7) === key)
+      .reduce((a, t) => a + -t.cents, 0)
+    return { label: d.toLocaleDateString('en-US', { month: 'short' }), amt: Math.round(toDollars(amt)), key }
+  }
+
+  // Trailing windows ending with the current month, so the labels track the
+  // real calendar instead of being frozen at Mar–Aug.
+  const quarterBars = [2, 1, 0].map(monthTotalBack).map(({ label, amt }) => ({ label, amt }))
+  // i=0 is January (getMonth() months back), i=getMonth() is the current
+  // month — already chronological. Reversing it here put the year backwards.
+  const yearMonths = Array.from({ length: now.getMonth() + 1 }, (_, i) =>
+    monthTotalBack(now.getMonth() - i),
+  )
+  const yearBars = yearMonths.map(({ label, amt }) => ({ label, amt }))
+  const monthsWithData = yearMonths.filter((m) => m.amt > 0).length
+
+  const yearSpend = yearBars.reduce((a, b) => a + b.amt, 0)
+  const recurringShare =
+    yearSpend > 0 ? `${Math.round(((subTotal * Math.max(1, monthsWithData)) / yearSpend) * 100)}%` : '—'
+
   const period = s.period || 'Week'
   const periodData: Record<
     Period,
@@ -589,87 +706,75 @@ export function deriveModel(
   > = {
     Week: {
       title: 'This week, day by day',
-      total: 86,
-      delta: '$18 less than last week',
-      down: true,
-      peak: 21,
-      bars: [
-        { label: 'Mon', amt: 8 },
-        { label: 'Tue', amt: 14 },
-        { label: 'Wed', amt: 21 },
-        { label: 'Thu', amt: 6 },
-        { label: 'Fri', amt: 12 },
-        { label: 'Sat', amt: 19 },
-        { label: 'Sun', amt: 6 },
-      ],
+      total: weekTotal,
+      delta: weekDelta,
+      down: weekTotal <= lastWeekTotal,
+      peak: Math.max(1, ...weekBars.map((b) => b.amt)),
+      bars: weekBars,
       stats: [
-        { label: 'Daily average', value: '$12.29' },
-        { label: 'Biggest day', value: 'Wed · $21' },
-        { label: 'No-spend days', value: '0' },
+        { label: 'Daily average', value: money(weekTotal / 7) },
+        {
+          label: 'Biggest day',
+          value: weekPeak.amt > 0 ? `${weekPeak.label} · ${money(weekPeak.amt)}` : '—',
+        },
+        { label: 'No-spend days', value: String(weekBars.filter((b) => b.amt === 0).length) },
       ],
-      insight:
-        'Wednesday and Saturday carry most of the week. Both are social days — that is where the Fun bucket goes.',
+      insight: weekInsight,
     },
     Month: {
       title: monthLabel + ', week by week',
-      total: 405,
-      delta: '$34 less than July at this point',
-      down: true,
-      peak: 118,
-      bars: [
-        { label: 'Aug 3', amt: 118 },
-        { label: 'Aug 10', amt: 97 },
-        { label: 'Aug 17', amt: 104 },
-        { label: 'Aug 24', amt: 86 },
-      ],
+      total: monthTotal,
+      delta:
+        monthTotal > 0
+          ? `${money(monthTotal / Math.max(1, dayOfMonth))} a day so far`
+          : 'Nothing recorded yet this month',
+      down: totalSpent <= (dayOfMonth / daysInMonth) * totalLimit,
+      peak: Math.max(1, ...monthBars.map((b) => b.amt)),
+      bars: monthBars,
       stats: [
-        { label: 'Weekly average', value: '$101' },
-        { label: 'Trend', value: 'Down 4 weeks' },
+        { label: 'Weekly average', value: money(monthTotal / Math.max(1, monthBars.length)) },
+        { label: 'Day of month', value: `${dayOfMonth} of ${daysInMonth}` },
         { label: 'Left to spend', value: money(totalLimit - totalSpent) },
       ],
-      insight:
-        'Four straight weeks of lower spending. The first week of the month is always your heaviest — that is when subscriptions land.',
+      insight: monthInsight,
     },
     '3 months': {
       title: 'Last three months',
-      total: 1284,
-      delta: '$62 more than the prior three',
+      total: quarterBars.reduce((a, b) => a + b.amt, 0),
+      delta: monthsWithData >= 3 ? 'From your own history' : 'Needs more history to compare',
       down: false,
-      peak: 468,
-      bars: [
-        { label: 'Jun', amt: 468 },
-        { label: 'Jul', amt: 411 },
-        { label: 'Aug', amt: 405 },
-      ],
+      peak: Math.max(1, ...quarterBars.map((b) => b.amt)),
+      bars: quarterBars,
       stats: [
-        { label: 'Monthly average', value: '$428' },
-        { label: 'Best month', value: 'Aug · $405' },
+        {
+          label: 'Monthly average',
+          value: money(quarterBars.reduce((a, b) => a + b.amt, 0) / Math.max(1, quarterBars.length)),
+        },
+        { label: 'Months with data', value: String(monthsWithData) },
         { label: 'Subscriptions', value: money(subTotal * 3) },
       ],
       insight:
-        'June was your outlier — summer travel. Since then you have held steady around $410 a month.',
+        monthsWithData >= 2
+          ? 'Comparing months is where the pattern shows up — one heavy month is noise, three is a habit.'
+          : 'Keep going. After a couple of months Tally can show you the trend rather than just the total.',
     },
     Year: {
-      title: '2026 so far',
-      total: 3210,
-      delta: 'On pace for $4,815 this year',
+      title: `${now.getFullYear()} so far`,
+      total: yearBars.reduce((a, b) => a + b.amt, 0),
+      delta: `${monthsWithData} month${monthsWithData === 1 ? '' : 's'} of history`,
       down: false,
-      peak: 468,
-      bars: [
-        { label: 'Mar', amt: 392 },
-        { label: 'Apr', amt: 417 },
-        { label: 'May', amt: 356 },
-        { label: 'Jun', amt: 468 },
-        { label: 'Jul', amt: 411 },
-        { label: 'Aug', amt: 405 },
-      ],
+      peak: Math.max(1, ...yearBars.map((b) => b.amt)),
+      bars: yearBars,
       stats: [
-        { label: 'Monthly average', value: '$408' },
-        { label: 'Lowest month', value: 'May · $356' },
-        { label: 'Recurring share', value: '11%' },
+        {
+          label: 'Monthly average',
+          value: money(yearBars.reduce((a, b) => a + b.amt, 0) / Math.max(1, monthsWithData || 1)),
+        },
+        { label: 'Months tracked', value: String(monthsWithData) },
+        { label: 'Recurring share', value: recurringShare },
       ],
       insight:
-        'Your spending is remarkably flat month to month. That predictability is what makes the safe-to-spend number reliable.',
+        'Flat months are the goal, not low ones. Predictable spending is what makes the safe-to-spend number trustworthy.',
     },
   }
   const pd = periodData[period]
@@ -999,6 +1104,9 @@ export function deriveModel(
         .map((x) => ({ name: x.name, price: x.price, tag: x.tag })),
     },
 
+    /** Both shells had this hardcoded to "Week of Aug 24". */
+    weekLabel,
+
     /** "Saturday, October 11" — both shells had this hardcoded to Aug 19. */
     todayLabel: now.toLocaleDateString('en-US', {
       weekday: 'long',
@@ -1055,7 +1163,7 @@ export function deriveModel(
           ? '$86 spent, ' + streak + '-day streak — your quietest week this month.'
           : '$86 this week. $18 under last week, Fun $11 below.',
     recapSubhead:
-      'Week of Aug 24 · ' + streak + '-day streak · ' + money(totalLimit - totalSpent) + ' left in buckets',
+      weekLabel + ' · ' + streak + '-day streak · ' + money(totalLimit - totalSpent) + ' left in buckets',
     recapShareText:
       'My Tally week: $86 spent, $18 under last week, ' + streak + '-day streak. Buckets: ' + money(totalLimit - totalSpent) + ' left.',
     watchKicker: offPace.length === 0 ? 'All clear' : 'Watch next week',

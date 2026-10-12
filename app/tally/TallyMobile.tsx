@@ -11,6 +11,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { BODY, DISPLAY, MONO, css as c, sx } from './lib'
 import type { TallyModel } from './model'
+import { AddTransaction, HiddenHistory, ImportCsv, PlanSwitcher, UpgradeNote } from './components'
 
 const mono = (x: string) => sx(c(x), { fontFamily: MONO })
 const display = (x: string) => sx(c(x), { fontFamily: DISPLAY })
@@ -375,6 +376,10 @@ function MSpending({ m }: { m: TallyModel }) {
         <p style={c('font-size:13px;color:#4a4941;margin:0')}>Tap a category on any transaction to fix it.</p>
       </div>
 
+      <PlanSwitcher m={m} />
+      <AddTransaction m={m} compact />
+      <ImportCsv m={m} />
+
       <div style={c(CARD)}>
         <div style={c('display:flex;gap:6px;overflow-x:auto;margin-bottom:16px;padding-bottom:2px')}>
           {m.periods.map((p, i) => (
@@ -448,10 +453,19 @@ function MSpending({ m }: { m: TallyModel }) {
       <button
         type="button"
         onClick={m.addBucket}
-        style={sx(c('background:transparent;border:1px dashed #cac7bc;border-radius:20px;padding:18px;cursor:pointer;color:#4a4941;font-size:14px;font-weight:600'), { fontFamily: BODY })}
+        disabled={!m.canAddBucket}
+        style={sx(
+          c(
+            `background:transparent;border:1px dashed #cac7bc;border-radius:20px;padding:18px;cursor:${m.canAddBucket ? 'pointer' : 'default'};color:#4a4941;font-size:14px;font-weight:600;opacity:${m.canAddBucket ? 1 : 0.5}`,
+          ),
+          { fontFamily: BODY },
+        )}
       >
-        + Add a category
+        {m.canAddBucket ? '+ Add a category' : `${m.planName} caps you at ${m.ent.maxBuckets}`}
       </button>
+      {!m.canAddBucket && (
+        <UpgradeNote m={m} need="starter" text="Unlimited buckets, so your budget matches how you actually spend." />
+      )}
 
       <div style={c(CARD)}>
         <h2 style={sx(display(H2), { marginBottom: 12 })}>Transactions</h2>
@@ -460,14 +474,29 @@ function MSpending({ m }: { m: TallyModel }) {
             <button key={i} type="button" onClick={f.pick} style={sx(c(f.style), { flex: 'none' })}>{f.label}</button>
           ))}
         </div>
-        {m.txns.map((t, i) => (
-          <div key={i} style={c('padding:12px 0;border-bottom:1px solid #f0eee5')}>
+        {m.txns.length === 0 && (
+          <p style={c('font-size:13px;color:#6b6a60;margin:4px 0')}>
+            Nothing yet. Add one above and it shows up instantly.
+          </p>
+        )}
+        {m.txns.map((t) => (
+          <div key={t.id} style={c('padding:12px 0;border-bottom:1px solid #f0eee5')}>
             <div style={c('display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px')}>
               <span style={c('font-size:14px')}>
                 <span style={mono('font-size:10px;color:#6b6a60;margin-right:8px')}>{t.day}</span>
                 {t.name}
               </span>
-              <span style={c(t.amtStyle)}>{t.amount}</span>
+              <span style={c('display:flex;align-items:center;gap:10px')}>
+                <span style={c(t.amtStyle)}>{t.amount}</span>
+                <button
+                  type="button"
+                  onClick={t.remove}
+                  aria-label={`Delete ${t.name}`}
+                  style={c('width:30px;height:30px;border-radius:9px;border:1px solid #e0ded4;background:transparent;color:#6b6a60;cursor:pointer;font-size:15px;line-height:1;flex:none')}
+                >
+                  ×
+                </button>
+              </span>
             </div>
             <div style={c('display:flex;gap:5px;flex-wrap:wrap')}>
               {t.cats.map((cat, j) => (
@@ -477,6 +506,9 @@ function MSpending({ m }: { m: TallyModel }) {
             {t.flag ? <div style={sx(c(t.flagStyle), { display: 'inline-block', marginTop: 8 })}>{t.flag}</div> : null}
           </div>
         ))}
+        <div style={c('margin-top:12px')}>
+          <HiddenHistory m={m} />
+        </div>
       </div>
     </>
   )

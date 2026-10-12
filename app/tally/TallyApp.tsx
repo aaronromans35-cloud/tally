@@ -11,6 +11,8 @@ import Link from 'next/link'
 import { BODY, DISPLAY, MONO, css as c, Hover, sx } from './lib'
 import { deriveModel, initialState, type Page, type TallyModel, type TallyState } from './model'
 import { loadState, saveState } from './storage'
+import { AddTransaction, HiddenHistory, ImportCsv, PlanSwitcher, UpgradeNote } from './components'
+import Coach from './Coach'
 import MobileShell from './TallyMobile'
 
 /** Swap to the phone layout under 768px. SSR renders desktop, then hydrates. */
@@ -70,7 +72,14 @@ export default function TallyApp() {
     )
   }
 
-  if (isMobile) return <MobileShell m={m} />
+  if (isMobile) {
+    return (
+      <>
+        <MobileShell m={m} />
+        <Coach m={m} />
+      </>
+    )
+  }
 
   return (
     <div style={sx(c('background:#f0eee6;color:#14140f;min-height:100vh'), { fontFamily: BODY })}>
@@ -85,6 +94,7 @@ export default function TallyApp() {
           {m.isAccounts && <Accounts m={m} />}
         </main>
       </div>
+      <Coach m={m} />
     </div>
   )
 }
@@ -507,6 +517,13 @@ function Spending({ m }: { m: TallyModel }) {
         </p>
       </div>
 
+      <PlanSwitcher m={m} />
+
+      <div style={c('display:grid;grid-template-columns:1.1fr 1fr;gap:16px;align-items:start')}>
+        <AddTransaction m={m} />
+        <ImportCsv m={m} />
+      </div>
+
       <div style={c('background:#ffffff;border:1px solid #e0ded4;border-radius:26px;padding:30px 32px')}>
         <div style={c('display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:26px')}>
           <h2 style={h2}>{m.periodTitle}</h2>
@@ -616,14 +633,26 @@ function Spending({ m }: { m: TallyModel }) {
         <button
           type="button"
           onClick={m.addBucket}
+          disabled={!m.canAddBucket}
+          title={m.canAddBucket ? undefined : `${m.planName} includes ${m.ent.maxBuckets} buckets`}
           style={sx(
-            c('background:transparent;border:1px dashed #cac7bc;border-radius:22px;padding:22px;cursor:pointer;color:#4a4941;font-size:15px;font-weight:600;min-height:150px;display:flex;align-items:center;justify-content:center'),
+            c(
+              `background:transparent;border:1px dashed #cac7bc;border-radius:22px;padding:22px;cursor:${m.canAddBucket ? 'pointer' : 'default'};color:#4a4941;font-size:15px;font-weight:600;min-height:150px;display:flex;align-items:center;justify-content:center;text-align:center;opacity:${m.canAddBucket ? 1 : 0.5}`,
+            ),
             { fontFamily: BODY },
           )}
         >
-          + Add a category
+          {m.canAddBucket ? '+ Add a category' : `${m.planName} caps you at ${m.ent.maxBuckets}`}
         </button>
       </div>
+
+      {!m.canAddBucket && (
+        <UpgradeNote
+          m={m}
+          need="starter"
+          text="Unlimited buckets, so your budget can match how you actually spend."
+        />
+      )}
 
       <div style={c('background:#ffffff;border:1px solid #e0ded4;border-radius:24px;padding:28px 32px')}>
         <div style={c('display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:18px')}>
@@ -637,10 +666,15 @@ function Spending({ m }: { m: TallyModel }) {
           </div>
         </div>
         <div style={c('display:flex;flex-direction:column')}>
-          {m.txns.map((t, i) => (
+          {m.txns.length === 0 && (
+            <p style={c('font-size:15px;color:#6b6a60;margin:8px 0 4px')}>
+              Nothing here yet. Add a transaction above and it shows up instantly.
+            </p>
+          )}
+          {m.txns.map((t) => (
             <div
-              key={i}
-              style={c('display:grid;grid-template-columns:56px 1fr auto auto;gap:18px;align-items:center;padding:14px 0;border-bottom:1px solid #f0eee5')}
+              key={t.id}
+              style={c('display:grid;grid-template-columns:56px 1fr auto auto auto;gap:18px;align-items:center;padding:14px 0;border-bottom:1px solid #f0eee5')}
             >
               <span style={mono('font-size:12px;color:#6b6a60')}>{t.day}</span>
               <div>
@@ -655,8 +689,20 @@ function Spending({ m }: { m: TallyModel }) {
               </div>
               <span style={c(t.flagStyle)}>{t.flag}</span>
               <span style={c(t.amtStyle)}>{t.amount}</span>
+              <button
+                type="button"
+                onClick={t.remove}
+                aria-label={`Delete ${t.name}`}
+                title="Delete"
+                style={c('width:30px;height:30px;border-radius:9px;border:1px solid #e0ded4;background:transparent;color:#6b6a60;cursor:pointer;font-size:15px;line-height:1')}
+              >
+                ×
+              </button>
             </div>
           ))}
+        </div>
+        <div style={c('margin-top:16px')}>
+          <HiddenHistory m={m} />
         </div>
       </div>
     </div>

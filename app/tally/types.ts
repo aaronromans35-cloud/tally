@@ -17,6 +17,10 @@
  * point is the whole boundary; don't add others.
  */
 
+import type { Tier } from '@/lib/tally/tiers'
+
+export type { Tier }
+
 export type BucketKind = 'spend' | 'save'
 
 export interface Bucket {
@@ -100,6 +104,18 @@ export interface TallyState {
   reviewedOn: string[]
   /** ISO dates a freeze was spent. One per week. */
   freezesUsedOn: string[]
+  /**
+   * The plan this session behaves as.
+   *
+   * In DEMO mode this is switchable, so a visitor can feel what each tier
+   * actually unlocks instead of reading a feature table — the paywall is part
+   * of the product, not a separate marketing page.
+   *
+   * In ACCOUNT mode the server is the authority: this is overwritten from the
+   * profile on load and never trusted for anything that matters. Entitlement
+   * checks that protect real resources happen in route handlers.
+   */
+  tier: Tier
 }
 
 /** Bumped when the shape changes incompatibly, so old saves are discarded. */

@@ -277,6 +277,10 @@ export function makeSeedState(now: Date = new Date()): TallyState {
     ],
     checkingCents: 24_815,
     merchantRules: {},
+    // Demo opens on Plus so the seeded budget is coherent and the first
+    // impression is the real product. The plan switcher lets a visitor drop to
+    // Free and watch features lock — which sells better than a feature table.
+    tier: 'plus',
     filter: 'All',
     period: 'Week',
     reviewedOn: [],

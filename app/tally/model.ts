@@ -20,6 +20,7 @@ import {
   newTxnId,
   todayIso,
 } from './storage'
+import { entitlementsFor, isUnlimited, planFor, type Tier } from '@/lib/tally/tiers'
 import type {
   Bucket,
   BucketKind,
@@ -113,6 +114,19 @@ export function deriveModel(
   const monthLeft = Math.max(1, daysInMonth - dayOfMonth)
   const today = todayIso(now)
   const monthLabel = now.toLocaleDateString('en-US', { month: 'long' })
+
+  /* ── Plan, resolved first because history visibility depends on it ── */
+  const tier: Tier = s.tier ?? 'free'
+  const ent = entitlementsFor(tier)
+  const plan = planFor(tier)
+
+  /** History older than the plan allows is hidden from view, never deleted. */
+  const historyCutoff = (() => {
+    if (isUnlimited(ent.historyMonths)) return '0000-00-00'
+    const d = new Date(now)
+    d.setMonth(d.getMonth() - ent.historyMonths)
+    return iso(d)
+  })()
 
   /* ── Subscriptions, now real records in state ── */
   const liveSubs = s.subs.filter((x) => !x.cancelled)
@@ -268,10 +282,15 @@ export function deriveModel(
     }
   })
   const addBucket = () =>
-    setState((st) => ({
-      ...st,
-      buckets: [...st.buckets, { id: uid(), name: 'New category', kind: 'spend', limit: 40 }],
-    }))
+    setState((st) => {
+      // Enforce the plan's bucket cap here as well as in the UI, so a stale
+      // button or a double-click can't slip past the limit.
+      if (st.buckets.length >= entitlementsFor(st.tier ?? 'free').maxBuckets) return st
+      return {
+        ...st,
+        buckets: [...st.buckets, { id: uid(), name: 'New category', kind: 'spend', limit: 40 }],
+      }
+    })
 
   const offPace = buckets.filter((b) => b.kind === 'spend' && b.pace !== 'on pace')
   const totalLimit = s.buckets.reduce((a, b) => a + b.limit, 0)
@@ -350,9 +369,9 @@ export function deriveModel(
   const defaultCat = guessId
 
   /** Newest first, and only inside the window the user's plan allows. */
-  const visibleTxns = [...s.txns].sort((a, b) =>
-    a.date === b.date ? b.id.localeCompare(a.id) : b.date.localeCompare(a.date),
-  )
+  const visibleTxns = [...s.txns]
+    .filter((t) => t.date >= historyCutoff)
+    .sort((a, b) => (a.date === b.date ? b.id.localeCompare(a.id) : b.date.localeCompare(a.date)))
 
   const txns = visibleTxns
     .filter((t) => s.filter === 'All' || (t.bucketId ?? defaultCat(t.name)) === s.filter)
@@ -760,7 +779,226 @@ export function deriveModel(
     { key: 'accounts', label: 'Accounts', badge: '' },
   ]
 
+  /* ── Entitlements ────────────────────────────────────────────────────────
+     Client-side gating is UX, not security. It decides what to draw and what
+     to grey out. Anything that protects a real resource (AI tokens, Plaid,
+     another user's data) is re-checked server-side in the route handler —
+     see lib/tally/tiers.ts and the API routes.
+  ──────────────────────────────────────────────────────────────────────── */
+  const bucketsLeft = ent.maxBuckets - s.buckets.length
+  const goalsLeft = ent.maxGoals - s.goals.length
+  const canAddBucket = bucketsLeft > 0
+  const canAddGoal = goalsLeft > 0
+  const hiddenByPlan = s.txns.filter((t) => t.date < historyCutoff).length
+
+  /* ── Transaction entry ──────────────────────────────────────────────────
+     The core missing verb. Tally could show you a budget but gave you no way
+     to record what you actually spent, which made every number read-only
+     fiction unless a bank was linked.
+  ──────────────────────────────────────────────────────────────────────── */
+  function addTxn(input: {
+    name: string
+    amount: number // DOLLARS as typed by a human; sign applied from `income`
+    bucketId?: string | null
+    date?: string
+    income?: boolean
+  }): { ok: boolean; error?: string } {
+    const name = input.name.trim()
+    if (!name) return { ok: false, error: 'Give it a name.' }
+    if (name.length > 120) return { ok: false, error: 'That name is too long.' }
+    const magnitude = Math.abs(Number(input.amount))
+    if (!Number.isFinite(magnitude) || magnitude === 0) {
+      return { ok: false, error: 'Enter an amount.' }
+    }
+    if (magnitude > 1_000_000) return { ok: false, error: 'That amount looks wrong.' }
+
+    const date = input.date && /^\d{4}-\d{2}-\d{2}$/.test(input.date) ? input.date : today
+    if (date > today) return { ok: false, error: 'Dates in the future aren’t supported yet.' }
+
+    const cents = Math.round(magnitude * 100) * (input.income ? 1 : -1)
+    const bucketId = input.income ? null : (input.bucketId ?? defaultCat(name))
+
+    setState((st) => ({
+      ...st,
+      txns: [
+        { id: newTxnId(), name, cents, date, bucketId, source: 'manual' as const },
+        ...st.txns,
+      ],
+      // Recording a real expense moves the real balance.
+      checkingCents: st.checkingCents + cents,
+      merchantRules:
+        bucketId && !input.income
+          ? { ...(st.merchantRules ?? {}), [name]: bucketId }
+          : (st.merchantRules ?? {}),
+    }))
+    return { ok: true }
+  }
+
+  /* ── CSV import (Starter+) ─────────────────────────────────────────────
+     Accepts the shape every bank export shares: a date, a description and an
+     amount, in any column order, with or without a header row.
+  ──────────────────────────────────────────────────────────────────────── */
+  function importCsv(text: string): { ok: boolean; added: number; error?: string } {
+    if (!ent.csvImport) return { ok: false, added: 0, error: 'CSV import is a Starter feature.' }
+
+    const lines = text.split(/\r?\n/).filter((l) => l.trim())
+    if (lines.length === 0) return { ok: false, added: 0, error: 'That file is empty.' }
+
+    // Split on commas that aren't inside quotes.
+    const cells = (line: string): string[] =>
+      (line.match(/("([^"]|"")*"|[^,]*)(,|$)/g) ?? [])
+        .map((c) => c.replace(/,$/, '').trim().replace(/^"|"$/g, '').replace(/""/g, '"'))
+        .slice(0, -1)
+
+    const rows = lines.map(cells).filter((r) => r.length >= 2)
+    if (rows.length === 0) return { ok: false, added: 0, error: 'Couldn’t read that as CSV.' }
+
+    const looksNumeric = (v: string) => /^-?[$(]?-?[\d,]+\.?\d*\)?$/.test(v.replace(/\s/g, ''))
+    const looksDate = (v: string) => !Number.isNaN(Date.parse(v))
+
+    // Identify columns from the first row that isn't a header.
+    const body = looksNumeric(rows[0].find(looksNumeric) ?? '') ? rows : rows.slice(1)
+    const sample = body[0]
+    if (!sample) return { ok: false, added: 0, error: 'No data rows found.' }
+
+    const amountIdx = sample.findIndex(looksNumeric)
+    const dateIdx = sample.findIndex((v, i) => i !== amountIdx && looksDate(v))
+    const nameIdx = sample.findIndex((v, i) => i !== amountIdx && i !== dateIdx && v.length > 0)
+    if (amountIdx < 0 || nameIdx < 0) {
+      return { ok: false, added: 0, error: 'Need at least a description and an amount column.' }
+    }
+
+    const parsed: Txn[] = []
+    for (const r of body) {
+      const rawAmt = (r[amountIdx] ?? '').replace(/[$,\s]/g, '')
+      // Accounting format: (12.34) means negative.
+      const negParen = /^\(.*\)$/.test(rawAmt)
+      const n = Number(rawAmt.replace(/[()]/g, ''))
+      if (!Number.isFinite(n) || n === 0) continue
+      const name = (r[nameIdx] ?? '').slice(0, 120) || 'Imported'
+      const d = dateIdx >= 0 ? new Date(r[dateIdx]) : new Date(now)
+      const dateStr = Number.isNaN(d.getTime()) ? today : iso(d)
+      if (dateStr > today) continue
+      const cents = Math.round(Math.abs(n) * 100) * (negParen || n < 0 ? -1 : 1)
+      parsed.push({
+        id: newTxnId(),
+        name,
+        cents,
+        date: dateStr,
+        bucketId: cents < 0 ? defaultCat(name) : null,
+        source: 'csv',
+      })
+    }
+
+    if (parsed.length === 0) return { ok: false, added: 0, error: 'No usable rows in that file.' }
+
+    setState((st) => {
+      // Don't double-import the same row twice.
+      const seen = new Set(st.txns.map((t) => `${t.date}|${t.name}|${t.cents}`))
+      const fresh = parsed.filter((p) => !seen.has(`${p.date}|${p.name}|${p.cents}`))
+      return { ...st, txns: [...fresh, ...st.txns] }
+    })
+    return { ok: true, added: parsed.length }
+  }
+
+  function addGoal(input: { name: string; target: number; due?: string | null }) {
+    const name = input.name.trim()
+    if (!name) return { ok: false, error: 'Name the goal.' }
+    if (!canAddGoal) return { ok: false, error: `${plan.name} includes ${ent.maxGoals} goal${ent.maxGoals === 1 ? '' : 's'}.` }
+    const targetCents = Math.round(Math.abs(Number(input.target)) * 100)
+    if (!targetCents) return { ok: false, error: 'Set a target amount.' }
+    setState((st) => ({
+      ...st,
+      goals: [
+        ...st.goals,
+        { id: newGoalId(), name, targetCents, savedCents: 0, dueDate: input.due || null },
+      ],
+    }))
+    return { ok: true }
+  }
+
+  function addSub(input: { name: string; amount: number; dayOfMonth: number; kind?: SubKind }) {
+    const name = input.name.trim()
+    if (!name) return { ok: false, error: 'Name it.' }
+    const cents = Math.round(Math.abs(Number(input.amount)) * 100)
+    if (!cents) return { ok: false, error: 'Enter an amount.' }
+    setState((st) => ({
+      ...st,
+      subs: [
+        ...st.subs,
+        {
+          id: newSubId(),
+          name,
+          cents,
+          dayOfMonth: Math.min(31, Math.max(1, Math.round(input.dayOfMonth) || 1)),
+          kind: input.kind ?? 'recurring',
+          note: 'Added by you',
+          cancelled: false,
+        },
+      ],
+    }))
+    return { ok: true }
+  }
+
+  const setTier = (t: Tier) => setState((st) => ({ ...st, tier: t }))
+
   return {
+    /* ── plan ── */
+    tier,
+    planName: plan.name,
+    planPrice: plan.priceMonthly,
+    ent,
+    setTier,
+    canAddBucket,
+    canAddGoal,
+    bucketsLeft: isUnlimited(ent.maxBuckets) ? Infinity : bucketsLeft,
+    goalsLeft: isUnlimited(ent.maxGoals) ? Infinity : goalsLeft,
+    hiddenByPlan,
+    historyNote: isUnlimited(ent.historyMonths)
+      ? 'Full history'
+      : `${ent.historyMonths} month${ent.historyMonths === 1 ? '' : 's'} of history`,
+
+    /* ── actions ── */
+    addTxn,
+    importCsv,
+    addGoal,
+    addSub,
+    todayIso: today,
+    bucketOptions: s.buckets.map((b) => ({ id: b.id, name: b.name })),
+
+    /**
+     * What the AI coach is allowed to know.
+     *
+     * Aggregates only — the same figures already on screen. Deliberately no
+     * name, email, institution, account number or raw transaction list: the
+     * coach can reason about "Food is 82% used" without ever learning who is
+     * spending it. Keep it that way when extending this.
+     */
+    coachContext: {
+      tier,
+      monthName: monthLabel,
+      dayOfMonth,
+      daysInMonth,
+      safeToSpend: safe,
+      checking: checkingStart,
+      streak,
+      buckets: s.buckets.map((b) => ({
+        name: b.name,
+        kind: b.kind,
+        used: spentOf(b.id),
+        limit: b.limit,
+      })),
+      goals: s.goals.map((g) => ({
+        name: g.name,
+        saved: toDollars(g.savedCents),
+        target: toDollars(g.targetCents),
+        due: g.dueDate,
+      })),
+      subs: subsRaw
+        .filter((x) => !x.cancelled)
+        .map((x) => ({ name: x.name, price: x.price, tag: x.tag })),
+    },
+
     /** "Saturday, October 11" — both shells had this hardcoded to Aug 19. */
     todayLabel: now.toLocaleDateString('en-US', {
       weekday: 'long',

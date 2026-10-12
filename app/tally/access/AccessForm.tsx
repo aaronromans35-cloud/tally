@@ -17,6 +17,8 @@ import { BODY, DISPLAY, MONO, css as c, Hover, sx } from '../lib'
 type Mode = 'signup' | 'signin' | 'reset'
 const APP = '/tally'
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+/** Must match the server. Length is the control that actually matters. */
+const MIN_PASSWORD = 10
 
 const display = (x: string) => sx(c(x), { fontFamily: DISPLAY })
 const mono = (x: string) => sx(c(x), { fontFamily: MONO })
@@ -56,9 +58,12 @@ export default function AccessForm() {
   const [mode, setMode] = useState<Mode>('signup')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [dob, setDob] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [sent, setSent] = useState<null | 'confirm' | 'reset'>(null)
+  /** True when the new account belongs to someone under 18. */
+  const [guardianNote, setGuardianNote] = useState(false)
 
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
 
@@ -102,54 +107,52 @@ export default function AccessForm() {
         setError('Enter a valid email address.')
         return
       }
-      if (mode !== 'reset' && password.length < 8) {
-        setError('Password must be at least 8 characters.')
+      if (mode !== 'reset' && password.length < MIN_PASSWORD) {
+        setError(`Password must be at least ${MIN_PASSWORD} characters.`)
         return
       }
-      const client = supa()
-      if (!client) {
-        setError('Sign-in service is unavailable right now. You can still explore the demo below.')
+      if (mode === 'signup' && !dob) {
+        setError('Enter your date of birth.')
         return
       }
+
       setBusy(true)
       try {
+        /**
+         * Goes through our own route rather than calling Supabase from the
+         * browser. Direct client calls skip every rate limit we own, which
+         * made password guessing free; the route applies per-IP and
+         * per-account limits before Supabase ever sees the attempt.
+         */
+        const res = await fetch('/api/tally/auth', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ action: mode, email, password, dob }),
+        })
+        const data = await res.json().catch(() => ({}))
+
+        if (!res.ok) {
+          setError(data?.error ?? 'Something went wrong. Please try again.')
+          return
+        }
+
         if (mode === 'signin') {
-          const { error: err } = await client.auth.signInWithPassword({ email, password })
-          if (err) throw err
           router.push(APP)
           return
         }
         if (mode === 'signup') {
-          const { error: err } = await client.auth.signUp({
-            email,
-            password,
-            options: { emailRedirectTo: `${origin}${APP}` },
-          })
-          if (err) throw err
+          setGuardianNote(Boolean(data?.needsGuardian))
           setSent('confirm')
         } else {
-          const { error: err } = await client.auth.resetPasswordForEmail(email, {
-            redirectTo: `${origin}${APP}/access/reset`,
-          })
-          if (err) throw err
           setSent('reset')
         }
-      } catch (err: unknown) {
-        const msg = (err as { message?: string })?.message?.toLowerCase() ?? ''
-        setError(
-          msg.includes('invalid login') || msg.includes('invalid') || msg.includes('credentials')
-            ? 'That email and password don’t match. Try again, or reset your password.'
-            : msg.includes('already registered') || msg.includes('already exists')
-              ? 'That email already has an account — try signing in instead.'
-              : msg.includes('not confirmed')
-                ? 'Confirm your email first — check your inbox for the link.'
-                : (err as { message?: string })?.message || 'Something went wrong. Please try again.',
-        )
+      } catch {
+        setError('Could not reach the server. Check your connection and try again.')
       } finally {
         setBusy(false)
       }
     },
-    [email, password, mode, origin, router],
+    [email, password, dob, mode, router],
   )
 
   const heading =
@@ -185,9 +188,17 @@ export default function AccessForm() {
                   ? `We sent a confirmation link to ${email}. Click it to finish setting up your account.`
                   : `If an account exists for ${email}, a password-reset link is on its way.`}
               </p>
-              <p style={mono('font-size:12px;color:#6b6a60;margin:0 0 22px')}>
+              <p style={mono('font-size:12px;color:#6b6a60;margin:0 0 16px')}>
                 No email in a few minutes? Check spam, or try a different address.
               </p>
+              {guardianNote && (
+                <div style={c('font-size:13px;line-height:1.6;color:#4a4941;background:#faf9f4;border:1px solid #e4e2d9;border-radius:12px;padding:12px 14px;margin:0 0 20px')}>
+                  <strong>One more thing.</strong> Because you‘re under 18, connecting a bank
+                  needs a guardian on a Family plan — the service that powers bank connections
+                  requires account holders to be 18 or over. Everything else works now: buckets,
+                  goals, streaks, and adding transactions yourself.
+                </div>
+              )}
               <button
                 type="button"
                 onClick={() => switchMode('signin')}
@@ -257,9 +268,36 @@ export default function AccessForm() {
                       autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder={mode === 'signup' ? 'At least 8 characters' : 'Your password'}
+                      placeholder={mode === 'signup' ? `At least ${MIN_PASSWORD} characters` : 'Your password'}
                       style={field}
                     />
+                  </div>
+                )}
+
+                {mode === 'signup' && (
+                  <div style={c('margin-bottom:14px')}>
+                    <label style={label} htmlFor="tally-dob">
+                      Date of birth
+                    </label>
+                    <input
+                      id="tally-dob"
+                      type="date"
+                      autoComplete="bday"
+                      value={dob}
+                      max={new Date().toISOString().slice(0, 10)}
+                      onChange={(e) => setDob(e.target.value)}
+                      style={field}
+                    />
+                    {/*
+                      Collected for age assurance only — it decides whether bank
+                      linking is available and whether a guardian is required.
+                      It is the minimum datum for that job; don't add more
+                      identity fields here.
+                    */}
+                    <p style={c('font-size:12px;line-height:1.5;color:#6b6a60;margin:7px 0 0')}>
+                      Used to check your age. Under 18 can use all of Tally, but bank linking
+                      needs a guardian — Plaid requires account holders to be 18+.
+                    </p>
                   </div>
                 )}
 

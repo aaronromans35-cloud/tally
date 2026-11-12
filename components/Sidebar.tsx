@@ -2,11 +2,13 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState, useRef } from 'react'
+import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { useUserData } from '@/lib/context/UserDataContext'
 import { useTheme } from '@/lib/context/ThemeContext'
 import { useWorkspace } from '@/lib/context/WorkspaceContext'
 import { useStreak } from '@/lib/hooks/useStreak'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 const EMOJIS = ['👤','🧑','📚','💼','🏠','🎓','🚗','✈️','🎯','💡','🧪','📊','🏦','🌎','🎮']
 
@@ -16,6 +18,7 @@ function WorkspaceTabs() {
   const [newName, setNewName] = useState('')
   const [newEmoji, setNewEmoji] = useState('📚')
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmDeleteWs, setConfirmDeleteWs] = useState<{ id: string; name: string } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const handleAdd = async () => {
@@ -28,8 +31,15 @@ function WorkspaceTabs() {
 
   const handleDelete = async (id: string) => {
     setDeletingId(id)
-    await deleteWorkspace(id)
-    setDeletingId(null)
+    try {
+      await deleteWorkspace(id)
+      toast.success('Profile deleted.')
+    } catch {
+      toast.error('Could not delete that profile. Please try again.')
+    } finally {
+      setDeletingId(null)
+      setConfirmDeleteWs(null)
+    }
   }
 
   return (
@@ -75,7 +85,7 @@ function WorkspaceTabs() {
             </button>
             {/* Delete × */}
             <button
-              onClick={() => handleDelete(ws.id)}
+              onClick={() => setConfirmDeleteWs({ id: ws.id, name: ws.name })}
               disabled={deletingId === ws.id}
               title={`Delete "${ws.name}"`}
               style={{
@@ -170,6 +180,16 @@ function WorkspaceTabs() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmDeleteWs !== null}
+        title="Delete this profile?"
+        description={confirmDeleteWs ? `This will permanently delete "${confirmDeleteWs.name}" and all of its practice data. This can't be undone.` : ''}
+        confirmLabel="Delete profile"
+        busy={!!confirmDeleteWs && deletingId === confirmDeleteWs.id}
+        onConfirm={() => confirmDeleteWs && handleDelete(confirmDeleteWs.id)}
+        onCancel={() => setConfirmDeleteWs(null)}
+      />
     </div>
   )
 }

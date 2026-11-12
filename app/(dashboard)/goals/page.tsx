@@ -1,9 +1,11 @@
 'use client'
 export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { useUserData } from '@/lib/context/UserDataContext'
 import { useWorkspace } from '@/lib/context/WorkspaceContext'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 type Goal = { id: string; name: string; type: string; target_amount: number; current_amount: number; target_date: string; priority: number }
 
@@ -23,6 +25,8 @@ export default function GoalsPage() {
   const [loading, setLoading] = useState(false)
   const [updateId, setUpdateId] = useState<string | null>(null)
   const [updateAmount, setUpdateAmount] = useState('')
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   async function load() {
     const supabase = createClient()
@@ -71,8 +75,16 @@ export default function GoalsPage() {
   }
 
   async function deleteGoal(id: string) {
+    setDeleting(true)
     const supabase = createClient()
-    await supabase.from('goals').delete().eq('id', id)
+    const { error } = await supabase.from('goals').delete().eq('id', id)
+    setDeleting(false)
+    setConfirmDeleteId(null)
+    if (error) {
+      toast.error('Could not delete that goal. Please try again.')
+      return
+    }
+    toast.success('Goal deleted.')
     load()
     refresh()
   }
@@ -170,7 +182,7 @@ export default function GoalsPage() {
                       </div>
                     </div>
                   </div>
-                  <button onClick={() => deleteGoal(g.id)} className="text-xs w-6 h-6 rounded-full flex items-center justify-center"
+                  <button onClick={() => setConfirmDeleteId(g.id)} className="text-xs w-6 h-6 rounded-full flex items-center justify-center"
                     style={{ color: 'var(--muted)' }}>✕</button>
                 </div>
 
@@ -256,6 +268,16 @@ export default function GoalsPage() {
           })}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        title="Delete this goal?"
+        description="This will permanently remove the goal and its saved progress. This can't be undone."
+        confirmLabel="Delete goal"
+        busy={deleting}
+        onConfirm={() => confirmDeleteId && deleteGoal(confirmDeleteId)}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   )
 }

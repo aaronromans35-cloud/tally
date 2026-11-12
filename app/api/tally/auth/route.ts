@@ -210,7 +210,9 @@ export async function POST(req: Request) {
       // Don't confirm the address exists. Supabase still emails the real owner.
       return NextResponse.json({ ok: true, verify: true })
     }
-    return bad(error.message || 'Could not create that account.')
+    // Never echo the raw Supabase error back to the client — it can leak
+    // internal details. Generic message only, matching the signin path above.
+    return bad('Could not create that account. Please try again.')
   }
 
   return NextResponse.json({

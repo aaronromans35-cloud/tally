@@ -1,31 +1,25 @@
-import { Ratelimit } from '@upstash/ratelimit'
-import { Redis } from '@upstash/redis'
-
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-})
+/**
+ * This used to wrap live `@upstash/ratelimit` instances pointed at the Redis
+ * URL in `.env.local`. That Redis instance no longer resolves, and the old
+ * `safeLimit` failed OPEN on any error — so every route using it (login,
+ * signup, market/quote proxies, the paid AI endpoints) currently has no
+ * effective rate limit at all.
+ *
+ * Fixed by delegating to `lib/tally/limiter.ts`'s engine, which degrades to
+ * an in-process limiter instead of allowing unlimited requests when Redis is
+ * unreachable. Names/signatures below are unchanged so none of the 6 call
+ * sites need to change.
+ */
+import { rateLimit } from './tally/limiter'
 
 // Auth routes: 5 attempts per 10 minutes per IP
-export const authLimiter = new Ratelimit({
-  redis,
-  limiter: Ratelimit.slidingWindow(5, '10 m'),
-  prefix: 'nexus:auth',
-})
+export const authLimiter = { limit: 5, windowMs: 10 * 60_000, prefix: 'nexus:auth' }
 
 // AI routes (plan, stock-research): 10 per hour per user
-export const aiLimiter = new Ratelimit({
-  redis,
-  limiter: Ratelimit.slidingWindow(10, '1 h'),
-  prefix: 'nexus:ai',
-})
+export const aiLimiter = { limit: 10, windowMs: 60 * 60_000, prefix: 'nexus:ai' }
 
 // Quote/market data: 60 per minute per IP
-export const quoteLimiter = new Ratelimit({
-  redis,
-  limiter: Ratelimit.slidingWindow(60, '1 m'),
-  prefix: 'nexus:quote',
-})
+export const quoteLimiter = { limit: 60, windowMs: 60_000, prefix: 'nexus:quote' }
 
 export function getIP(req: Request): string {
   const forwarded = req.headers.get('x-forwarded-for')
@@ -33,12 +27,16 @@ export function getIP(req: Request): string {
   return ip
 }
 
-// Wraps any limiter so that if Redis is unreachable the request is allowed
-// through rather than crashing the API route with a 500
-export async function safeLimit(limiter: Ratelimit, key: string) {
-  try {
-    return await limiter.limit(key)
-  } catch {
-    return { success: true, remaining: 999, reset: Date.now() + 60_000 }
-  }
+type LimiterConfig = { limit: number; windowMs: number; prefix: string }
+
+// Fails CLOSED in the sense that matters: a dead/unreachable Redis degrades
+// to a real in-process ceiling rather than letting every request through.
+export async function safeLimit(limiter: LimiterConfig, key: string) {
+  const result = await rateLimit({
+    key: `${limiter.prefix}:${key}`,
+    limit: limiter.limit,
+    windowMs: limiter.windowMs,
+    onError: 'closed',
+  })
+  return { success: result.success, remaining: result.remaining, reset: result.reset }
 }

@@ -1,8 +1,16 @@
 # Tally — what's done, and what's yours
 
-Last updated: 2026-10-12 · Repo: https://github.com/aaronromans35-cloud/tally
+Last updated: 2026-11-13 · Repo: https://github.com/aaronromans35-cloud/tally
 
 ---
+
+## Status (2026-11-13)
+
+Steps 1–3 are done and verified in production (https://nexus-app-snowy.vercel.app):
+Supabase project `qhszfzgevmgjvbqtpzkp`, env vars on Vercel, Google sign-in
+(via `/auth/callback`), Supabase Site URL + Redirect URLs, and Upstash-backed
+rate limiting. The project deploys with `npx vercel --prod --yes`; it is not
+connected to GitHub, so pushing does not deploy.
 
 ## Part 1 — Your steps, in order
 
@@ -11,10 +19,10 @@ accounts. Everything after that is optional until you have users.
 
 ---
 
-### ⬜ Step 1 — New Supabase project *(8 min)*
+### ✅ Step 1 — New Supabase project *(8 min)*
 
-Your old one was deleted — the hostname no longer resolves, which is why
-sign-up, login and password reset currently don't work.
+The old project was deleted, so a new one was needed for sign-up, login and
+password reset to work.
 
 1. Go to **supabase.com** → sign in → **New project**
 2. Name it `tally`, pick a region near you, save the database password somewhere
@@ -31,7 +39,7 @@ sign-up, login and password reset currently don't work.
 
 ---
 
-### ⬜ Step 2 — Put the keys in *(3 min)*
+### ✅ Step 2 — Put the keys in *(3 min)*
 
 Open `.env.local` in the project folder and replace these three lines:
 
@@ -52,7 +60,7 @@ break into other users' data. If anything fails, stop and tell me.
 
 ---
 
-### ⬜ Step 3 — Deploy *(10 min)*
+### ✅ Step 3 — Deploy *(10 min)*
 
 1. Go to **vercel.com** → **Add New → Project**
 2. **Import** `aaronromans35-cloud/tally` from GitHub

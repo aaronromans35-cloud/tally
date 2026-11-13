@@ -1,13 +1,12 @@
 /**
- * This used to wrap live `@upstash/ratelimit` instances pointed at the Redis
- * URL in `.env.local`. That Redis instance no longer resolves, and the old
- * `safeLimit` failed OPEN on any error — so every route using it (login,
- * signup, market/quote proxies, the paid AI endpoints) currently has no
- * effective rate limit at all.
+ * Thin adapter over `lib/tally/limiter.ts`. The old `safeLimit` failed OPEN on
+ * any Redis error, which would have given every route using it (login,
+ * signup, market/quote proxies, the paid AI endpoints) no effective limit
+ * whenever Redis hiccuped.
  *
- * Fixed by delegating to `lib/tally/limiter.ts`'s engine, which degrades to
- * an in-process limiter instead of allowing unlimited requests when Redis is
- * unreachable. Names/signatures below are unchanged so none of the 6 call
+ * The engine uses Upstash Redis (shared across serverless instances) and
+ * degrades to an in-process limiter instead of allowing unlimited requests
+ * when Redis is unreachable. Names/signatures below are unchanged so none of the 6 call
  * sites need to change.
  */
 import { rateLimit } from './tally/limiter'

@@ -1,9 +1,8 @@
 /**
  * Rate limiting that degrades honestly.
  *
- * The repo already had Upstash-backed limiters (lib/ratelimit.ts), but that
- * Redis instance no longer exists, and `safeLimit` there fails OPEN on any
- * error. Failing open is right for a stock quote and wrong for a login: it
+ * The repo already had Upstash-backed limiters (lib/ratelimit.ts), but
+ * `safeLimit` there failed OPEN on any error. Failing open is right for a stock quote and wrong for a login: it
  * means anyone who can make Redis unreachable gets unlimited password guesses.
  *
  * This module:
@@ -13,8 +12,9 @@
  *
  * The in-process fallback is per-instance, so on serverless it is weaker than
  * Redis — an attacker spread across N cold instances gets N times the budget.
- * It is still far better than nothing, and it is the honest default until a
- * Redis URL exists. Do not present it as equivalent.
+ * It is still far better than nothing, but do not present it as equivalent to
+ * Redis. Production is configured with Upstash (UPSTASH_REDIS_REST_URL/TOKEN),
+ * so the fallback only applies during an outage.
  */
 
 type Outcome = { success: boolean; remaining: number; reset: number; backend: 'redis' | 'memory' }
@@ -73,8 +73,7 @@ export interface LimitOptions {
 /**
  * Circuit breaker. Without this, a dead-but-configured Redis costs every
  * single request a network timeout before falling back — which is exactly the
- * state this project was in (the Upstash instance in .env.local no longer
- * resolves).
+ * state this project was in before the Upstash instance was recreated.
  */
 let redisDownUntil = 0
 const REDIS_COOLDOWN_MS = 30_000

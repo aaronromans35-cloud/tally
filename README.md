@@ -137,7 +137,7 @@ mode; they light up account mode.
 | `SUPABASE_SERVICE_ROLE_KEY` | server-only: tier changes, Plaid tokens. **Never** expose to the client. |
 | `ANTHROPIC_API_KEY` | AI coach |
 | `PLAID_CLIENT_ID` / `PLAID_SECRET` | bank linking (sandbox is free) |
-| `UPSTASH_REDIS_REST_*` | distributed rate limiting (optional; falls back to in-memory) |
+| `UPSTASH_REDIS_REST_*` | distributed rate limiting (set in production; falls back to in-memory if unreachable) |
 
 ---
 

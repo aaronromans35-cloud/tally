@@ -88,7 +88,7 @@ export default function AccessForm() {
     setBusy(true)
     const { error: err } = await client.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${origin}${APP}` },
+      options: { redirectTo: `${origin}/auth/callback` },
     })
     if (err) {
       setBusy(false)

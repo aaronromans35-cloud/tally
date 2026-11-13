@@ -5,10 +5,10 @@
  * Landing page for the Supabase password-recovery link. The link puts the user
  * in a temporary recovery session; `updateUser({ password })` sets the new one.
  */
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { MIN_PASSWORD } from '@/lib/tally/password'
 import { BODY, DISPLAY, MONO, css as c, sx } from '../../lib'
 
 const APP = '/tally'
@@ -18,37 +18,22 @@ const field = c(
   "width:100%;font-family:'IBM Plex Sans',sans-serif;font-size:15px;padding:13px 15px;border:1px solid #d6d3c8;border-radius:12px;background:#ffffff;color:#14140f;outline:none",
 )
 
-export default function ResetForm() {
+export default function ResetForm({ ready }: { ready: boolean }) {
   const router = useRouter()
-  const [ready, setReady] = useState(false)
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(
+    ready ? '' : 'This reset link has expired or was already used. Request a new one.',
+  )
   const [done, setDone] = useState(false)
-
-  useEffect(() => {
-    let client: ReturnType<typeof createClient> | null = null
-    try {
-      client = createClient()
-    } catch {
-      setError('Sign-in service is unavailable right now.')
-      return
-    }
-    client.auth.getSession().then(({ data }) => {
-      setReady(Boolean(data.session))
-      if (!data.session) {
-        setError('This reset link has expired or was already used. Request a new one.')
-      }
-    })
-  }, [])
 
   const submit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
       setError('')
-      if (password.length < 8) {
-        setError('Password must be at least 8 characters.')
+      if (password.length < MIN_PASSWORD) {
+        setError(`Password must be at least ${MIN_PASSWORD} characters.`)
         return
       }
       if (password !== confirm) {
@@ -57,9 +42,13 @@ export default function ResetForm() {
       }
       setBusy(true)
       try {
-        const client = createClient()
-        const { error: err } = await client.auth.updateUser({ password })
-        if (err) throw err
+        const res = await fetch('/api/tally/auth/password', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ password }),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data?.error || 'Could not update the password. Try again.')
         setDone(true)
         setTimeout(() => router.push(APP), 1400)
       } catch (err: unknown) {
@@ -102,7 +91,7 @@ export default function ResetForm() {
                 Set a new password
               </h1>
               <p style={c('font-size:14px;line-height:1.55;color:#4a4941;margin:0 0 22px')}>
-                Pick something at least 8 characters long.
+                Pick something at least {MIN_PASSWORD} characters long.
               </p>
               <form onSubmit={submit}>
                 <div style={c('margin-bottom:14px')}>

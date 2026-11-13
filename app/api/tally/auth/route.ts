@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { accountLimit, authLimit, clientIp, limitHeaders } from '@/lib/tally/limiter'
+import { weakPassword } from '@/lib/tally/password'
 import { MIN_AGE, ageFromDob, isAdultDob } from '@/lib/tally/tiers'
 
 export const runtime = 'nodejs'
@@ -20,7 +21,6 @@ export const runtime = 'nodejs'
  */
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const MIN_PASSWORD = 10
 
 /** Generic on purpose — never reveal whether an email is registered. */
 const GENERIC_SIGNIN_ERROR = 'That email and password don’t match.'
@@ -46,25 +46,6 @@ function isNetworkError(e: unknown): boolean {
     msg.includes('econnrefused') ||
     msg.includes('timeout')
   )
-}
-
-/**
- * Reject the passwords that actually get broken, without a dictionary file.
- * Length does the heavy lifting; this catches the lazy remainder.
- */
-function weakPassword(pw: string, email: string): string | null {
-  if (pw.length < MIN_PASSWORD) return `Use at least ${MIN_PASSWORD} characters.`
-  if (pw.length > 200) return 'That password is too long.'
-  if (/^(.)\1+$/.test(pw)) return 'That password is a single repeated character.'
-  if (/^(password|passw0rd|qwerty|letmein|welcome|iloveyou|admin)/i.test(pw)) {
-    return 'That password is one of the most common ones. Pick another.'
-  }
-  if (/^\d+$/.test(pw)) return 'Use more than just numbers.'
-  const local = email.split('@')[0]
-  if (local.length > 2 && pw.toLowerCase().includes(local.toLowerCase())) {
-    return 'Don’t put your email address in your password.'
-  }
-  return null
 }
 
 export async function POST(req: Request) {
@@ -148,7 +129,7 @@ export async function POST(req: Request) {
   if (action === 'reset') {
     try {
       await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${origin}/tally/access/reset`,
+        redirectTo: `${origin}/auth/callback?next=/tally/access/reset`,
       })
     } catch (e) {
       if (isNetworkError(e)) return bad(UNREACHABLE, 503)
@@ -189,7 +170,7 @@ export async function POST(req: Request) {
     email,
     password,
     options: {
-      emailRedirectTo: `${origin}/tally`,
+      emailRedirectTo: `${origin}/auth/callback?next=/tally`,
       data: {
         // Read by a DB trigger/route to seed tally_profiles. Never trust these
         // for entitlements — tier lives server-side only.

@@ -412,3 +412,175 @@ export function DemoChip() {
     </span>
   )
 }
+
+/* ─────────────────────── Linked accounts ─────────────────────── */
+
+/**
+ * The list of linked accounts plus the "add another" card. Shared by both
+ * shells so Disconnect behaves identically on a phone and a laptop.
+ *
+ * Disconnect asks first: it stops syncing, which is easy to undo (Reconnect)
+ * but surprising if you tapped it by accident.
+ */
+export function AccountsPanel({ m, compact = false }: { m: TallyModel; compact?: boolean }) {
+  const [confirmId, setConfirmId] = useState<string | null>(null)
+  const [showConnect, setShowConnect] = useState(false)
+
+  const pad = compact ? '18px' : '26px 30px'
+  const radius = compact ? '20px' : '24px'
+  const allConnected = m.connectedCount === m.accounts.length
+
+  return (
+    <>
+      {m.accounts.map((a) => {
+        const confirming = confirmId === a.id
+        return (
+          <div
+            key={a.id}
+            style={c(
+              `background:#ffffff;border:1px solid ${LINE};border-radius:${radius};padding:${pad};transition:opacity 160ms ease;opacity:${a.connected ? 1 : 0.78}`,
+            )}
+          >
+            <div
+              style={c(
+                compact
+                  ? 'display:flex;flex-direction:column;gap:12px'
+                  : 'display:flex;align-items:center;gap:20px',
+              )}
+            >
+              <div style={c('display:flex;align-items:center;gap:' + (compact ? '12px' : '20px') + ';flex:1;min-width:0')}>
+                <div style={c(a.dot)} aria-hidden="true" />
+                <div style={c('flex:1;min-width:0')}>
+                  <div style={c(`font-size:${compact ? 16 : 18}px;font-weight:600;margin-bottom:4px`)}>{a.name}</div>
+                  <div style={mono(`font-size:${compact ? 11 : 12}px;color:#4a4941`)}>{a.meta}</div>
+                </div>
+              </div>
+              <div
+                style={c(
+                  compact
+                    ? 'display:flex;justify-content:space-between;align-items:center;gap:10px'
+                    : 'display:flex;align-items:center;gap:24px',
+                )}
+              >
+                <span
+                  style={c(
+                    `font-family:var(--tally-display),'Space Grotesk',sans-serif;font-size:${compact ? 22 : 24}px;font-weight:700;letter-spacing:-0.02em;color:${a.connected ? INK : MUTED}`,
+                  )}
+                >
+                  {a.balance}
+                </span>
+                {!confirming && (
+                  <button
+                    type="button"
+                    onClick={() => (a.connected ? setConfirmId(a.id) : a.reconnect())}
+                    style={c(a.btnStyle)}
+                  >
+                    {a.btnLabel}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {confirming && (
+              <div
+                role="alertdialog"
+                aria-label={`Disconnect ${a.name}`}
+                style={c(
+                  `margin-top:16px;padding:14px 16px;border-radius:14px;background:#faf9f4;border:1px solid ${LINE}`,
+                )}
+              >
+                <div style={c('font-size:14px;line-height:1.55;color:#4a4941;margin-bottom:12px')}>
+                  Tally will stop syncing <strong>{a.name}</strong>. The transactions you already have stay
+                  put, and you can reconnect any time.
+                </div>
+                <div style={c('display:flex;gap:10px;flex-wrap:wrap')}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      a.disconnect()
+                      setConfirmId(null)
+                    }}
+                    style={c(
+                      "font-family:'IBM Plex Sans',sans-serif;font-size:14px;font-weight:600;min-height:42px;padding:0 18px;border-radius:12px;border:none;background:#b8422a;color:#fff;cursor:pointer",
+                    )}
+                  >
+                    Disconnect
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmId(null)}
+                    style={c(
+                      "font-family:'IBM Plex Sans',sans-serif;font-size:14px;font-weight:600;min-height:42px;padding:0 18px;border-radius:12px;border:1px solid #cac7bc;background:transparent;color:#14140f;cursor:pointer",
+                    )}
+                  >
+                    Keep connected
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      })}
+
+      <div
+        style={c(
+          `background:#ffffff;border:1px dashed #cac7bc;border-radius:${radius};padding:${compact ? '22px' : '30px'};text-align:center`,
+        )}
+      >
+        <div style={c(`font-size:${compact ? 15 : 17}px;font-weight:600;margin-bottom:6px`)}>
+          {allConnected ? 'Add another account' : 'Bring your accounts back'}
+        </div>
+        <div style={c(`font-size:${compact ? 12 : 14}px;color:#4a4941;margin-bottom:${compact ? 14 : 18}px`)}>
+          {allConnected
+            ? 'Checking, savings, or a card. More accounts means better categories.'
+            : `${m.accounts.length - m.connectedCount} account${m.accounts.length - m.connectedCount === 1 ? ' is' : 's are'} disconnected.`}
+        </div>
+        {!allConnected ? (
+          <button
+            type="button"
+            onClick={m.reconnectAll}
+            style={c(
+              `font-family:'IBM Plex Sans',sans-serif;font-size:15px;font-weight:600;min-height:46px;padding:0 24px;border:none;border-radius:12px;background:${GREEN};color:#f7fbf6;cursor:pointer;${compact ? 'width:100%' : ''}`,
+            )}
+          >
+            Reconnect all
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowConnect((v) => !v)}
+            aria-expanded={showConnect}
+            style={c(
+              `font-family:'IBM Plex Sans',sans-serif;font-size:15px;font-weight:600;min-height:46px;padding:0 24px;border:none;border-radius:12px;background:${GREEN};color:#f7fbf6;cursor:pointer;${compact ? 'width:100%' : ''}`,
+            )}
+          >
+            Connect with Plaid
+          </button>
+        )}
+        {showConnect && allConnected && (
+          <div
+            role="status"
+            style={c(
+              `margin-top:16px;text-align:left;padding:14px 16px;border-radius:14px;background:#fcf8e9;border:1px solid #efe3b6;font-size:${compact ? 13 : 14}px;line-height:1.6;color:#5c4710`,
+            )}
+          >
+            <strong>Bank linking isn’t open yet.</strong> Tally is waiting on Plaid’s approval to connect
+            real banks. Until then you can add transactions by hand or import a bank CSV from the
+            Spending tab — everything else works the same.
+            <div style={c('margin-top:10px')}>
+              <button
+                type="button"
+                onClick={() => m.goSpending()}
+                style={c(
+                  "font-family:'IBM Plex Sans',sans-serif;font-size:14px;font-weight:600;color:#1c6a48;background:none;border:none;padding:0;cursor:pointer",
+                )}
+              >
+                Go to Spending →
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
+  )
+}

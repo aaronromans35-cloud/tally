@@ -63,6 +63,22 @@ export async function POST(req: Request) {
   }
 
   const action = body.action
+
+  /**
+   * Sign out has to happen here, not in the browser. The session cookies are
+   * httpOnly, so `supabase.auth.signOut()` in client code cannot remove them —
+   * the button would appear to work and the user would still be signed in.
+   */
+  if (action === 'signout') {
+    try {
+      const supabase = await createClient()
+      await supabase.auth.signOut()
+    } catch {
+      // Even if Supabase is unreachable the cookies below are cleared locally.
+    }
+    return NextResponse.json({ ok: true })
+  }
+
   const email = (body.email ?? '').trim().toLowerCase()
   const password = body.password ?? ''
 

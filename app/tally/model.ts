@@ -575,6 +575,55 @@ export function deriveModel(
   const fHeadroom = Math.max(0, Math.round(fLow.bal - fBuffer))
   const nextOut = upcomingRaw.filter((c) => !c.income)[0]
 
+  /* ── Linked accounts ─────────────────────────────────────────────────────
+     Disconnect is real state, not a button that does nothing: it flips the
+     account off in `connections`, which persists and (when signed in) syncs.
+     Tally keeps the transactions it already has — disconnecting stops FUTURE
+     syncing, it doesn't erase history.
+  ──────────────────────────────────────────────────────────────────────── */
+  const connections = s.connections ?? {}
+  const setConnected = (id: string, on: boolean) =>
+    setState((st) => ({ ...st, connections: { ...(st.connections ?? {}), [id]: on } }))
+  const accountDefs = [
+    {
+      id: 'checking',
+      name: 'Chase College Checking',
+      mask: '4417',
+      balance: checkingStart,
+      moved: movedTotal,
+    },
+    { id: 'savings', name: 'Chase Savings', mask: '9032', balance: goalsSavedTotal, moved: 0 },
+  ]
+  const accountRows = accountDefs.map((a) => {
+    const connected = connections[a.id] !== false
+    return {
+      id: a.id,
+      name: a.name,
+      connected,
+      meta: connected
+        ? '•••• ' +
+          a.mask +
+          ' · read-only · ' +
+          (a.moved > 0 ? cash(a.moved) + ' moved out today' : 'linked')
+        : '•••• ' + a.mask + ' · disconnected — no longer syncing',
+      balance: connected ? cash(a.balance) : '—',
+      dot:
+        'width:10px;height:10px;border-radius:99px;flex:none;background:' +
+        (connected ? '#1c6a48' : '#c9c6ba'),
+      btnLabel: connected ? 'Disconnect' : 'Reconnect',
+      btnStyle:
+        "font-family:'IBM Plex Sans',sans-serif;font-size:14px;font-weight:600;min-height:44px;padding:0 20px;border-radius:12px;flex:none;cursor:pointer;border:1px solid " +
+        (connected ? '#cac7bc' : '#1c6a48') +
+        ';background:' +
+        (connected ? 'transparent' : '#1c6a48') +
+        ';color:' +
+        (connected ? '#4a4941' : '#f7fbf6'),
+      disconnect: () => setConnected(a.id, false),
+      reconnect: () => setConnected(a.id, true),
+      act: () => setConnected(a.id, !connected),
+    }
+  })
+
   const goalsNoteText = behindGoal
     ? `${behindGoal.name} needs ${money(behindGoal.need)} a week to land on time.`
     : s.goals.length === 0
@@ -617,6 +666,49 @@ export function deriveModel(
     d.setDate(d.getDate() - 7 + i)
     return outflowOn(iso(d))
   }).reduce((a, b) => a + b, 0)
+
+  /** Dollars a bucket paid out during the 7 days starting `weeksBack` weeks before this Monday. */
+  const bucketWeek = (bucketId: string, weeksBack: number): number => {
+    const days = new Set(
+      Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(thisMonday)
+        d.setDate(d.getDate() - weeksBack * 7 + i)
+        return iso(d)
+      }),
+    )
+    return toDollars(
+      s.txns
+        .filter((t) => t.cents < 0 && t.bucketId === bucketId && days.has(t.date))
+        .reduce((a, t) => a + -t.cents, 0),
+    )
+  }
+  const weekRows = s.buckets.map((b) => ({
+    id: b.id,
+    name: b.name,
+    kind: b.kind,
+    wk: bucketWeek(b.id, 0),
+    prev: bucketWeek(b.id, 1),
+  }))
+  /** The spend bucket that fell furthest below last week — the win worth naming. */
+  const bestDrop = weekRows
+    .filter((r) => r.kind === 'spend' && r.prev - r.wk >= 1)
+    .sort((a, b) => b.prev - b.wk - (a.prev - a.wk))[0]
+
+  /** Total outflow for each of the last four weeks, oldest first. */
+  const fourWeekData = [3, 2, 1, 0].map((back) => {
+    const monday = new Date(thisMonday)
+    monday.setDate(monday.getDate() - back * 7)
+    const amt = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday)
+      d.setDate(d.getDate() + i)
+      return outflowOn(iso(d))
+    }).reduce((a, b) => a + b, 0)
+    return {
+      label: back === 0 ? 'This week' : monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      amt,
+    }
+  })
+  const fourWeekPeak = Math.max(1, ...fourWeekData.map((w) => w.amt))
 
   const weekDiff = Math.round(Math.abs(weekTotal - lastWeekTotal))
   const weekDelta =
@@ -1120,6 +1212,7 @@ export function deriveModel(
       label: t.label,
       badge: t.badge,
       go: () => go(t.key),
+      active: s.page === t.key,
       style:
         "display:flex;align-items:center;gap:8px;font-family:'IBM Plex Sans',sans-serif;font-size:15px;font-weight:" +
         (s.page === t.key ? '600' : '500') +
@@ -1155,17 +1248,37 @@ export function deriveModel(
           ' — that is ' +
           money(cancelledYearly) +
           ' a year you kept.'
-        : 'You spent $18 less than last week, and Fun came in $11 under.',
+        : weekTotal === 0
+          ? 'Nothing recorded yet this week. Add what you spend and this fills in.'
+          : lastWeekTotal > 0 && weekTotal <= lastWeekTotal
+            ? 'You spent ' +
+              money(lastWeekTotal - weekTotal) +
+              ' less than last week' +
+              (bestDrop ? ', and ' + bestDrop.name + ' came in ' + money(bestDrop.prev - bestDrop.wk) + ' under.' : '.')
+            : 'You spent ' +
+              money(weekTotal) +
+              ' so far this week. ' +
+              (streak >= 3 ? streak + ' days in a row of checking in — keep it going.' : 'Checking in daily is what builds the streak.'),
     recapHeadline:
       cancelledYearly > 0
         ? 'You cut ' + money(cancelledYearly) + ' a year this week.'
-        : streak >= 7
-          ? '$86 spent, ' + streak + '-day streak — your quietest week this month.'
-          : '$86 this week. $18 under last week, Fun $11 below.',
+        : weekTotal === 0
+          ? 'A clean slate this week.'
+          : lastWeekTotal > 0 && weekTotal <= lastWeekTotal
+            ? money(weekTotal) + ' spent, ' + money(lastWeekTotal - weekTotal) + ' under last week.'
+            : money(weekTotal) + ' spent this week so far.',
     recapSubhead:
       weekLabel + ' · ' + streak + '-day streak · ' + money(totalLimit - totalSpent) + ' left in buckets',
     recapShareText:
-      'My Tally week: $86 spent, $18 under last week, ' + streak + '-day streak. Buckets: ' + money(totalLimit - totalSpent) + ' left.',
+      'My Tally week: ' +
+      money(weekTotal) +
+      ' spent' +
+      (lastWeekTotal > 0 ? ', ' + weekDelta.toLowerCase() : '') +
+      ', ' +
+      streak +
+      '-day streak. Buckets: ' +
+      money(totalLimit - totalSpent) +
+      ' left.',
     watchKicker: offPace.length === 0 ? 'All clear' : 'Watch next week',
     watchKickerStyle:
       "font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:10px;color:" +
@@ -1241,12 +1354,7 @@ export function deriveModel(
       noteStyle: 'font-size:14px;line-height:1.5;color:' + (w.good ? '#1c6a48' : '#8a6a12'),
     })),
 
-    fourWeeks: [
-      { label: 'Aug 3', amt: 118 },
-      { label: 'Aug 10', amt: 97 },
-      { label: 'Aug 17', amt: 104 },
-      { label: 'This week', amt: 86 },
-    ].map((w, i) => {
+    fourWeeks: fourWeekData.map((w, i) => {
       const now = i === 3
       return {
         label: w.label,
@@ -1256,7 +1364,7 @@ export function deriveModel(
           (now ? '#1c6a48' : '#6b6a60'),
         bar:
           'width:100%;max-width:40px;border-radius:8px;height:' +
-          Math.round((w.amt / 118) * 70) +
+          Math.round((w.amt / fourWeekPeak) * 70) +
           'px;background:' +
           (now ? '#1c6a48' : '#c9c6ba'),
         labelStyle:
@@ -1266,49 +1374,31 @@ export function deriveModel(
     }),
 
     recapBars: (() => {
-      // Derived per bucket from month-to-date spend: a plausible "this week" is a
-      // slice of it, "last week" a slightly larger slice.
-      const rows = s.buckets.map((b) => {
-        const wk = Math.round(spentOf(b.id) * 0.45)
-        const prev = Math.max(wk + 3, Math.round(spentOf(b.id) * 0.55))
-        return { name: b.name, wk, prev }
-      })
-      const peak = Math.max(1, ...rows.map((r) => r.prev))
-      return rows.map((r) => {
-        const diff = r.wk - r.prev
+      // Real ledger data: this week against last week, per bucket.
+      const peak = Math.max(1, ...weekRows.map((r) => Math.max(r.wk, r.prev)))
+      return weekRows.map((r) => {
+        const diff = Math.round(r.wk - r.prev)
         return {
           name: r.name,
-          delta: (diff > 0 ? '+' : '−') + money(Math.abs(diff)) + ' vs last week',
+          delta:
+            r.wk === 0 && r.prev === 0
+              ? 'no spending yet'
+              : diff === 0
+                ? 'same as last week'
+                : (diff > 0 ? '+' : '−') + money(Math.abs(diff)) + ' vs last week',
           fill:
             'width:' +
             Math.round((r.wk / peak) * 100) +
-            '%;height:100%;border-radius:99px;background:' +
+            '%;height:100%;border-radius:99px;transition:width 220ms ease;background:' +
             (diff > 0 ? '#8a6a12' : '#cdf06a'),
         }
       })
     })(),
 
-    accounts: [
-      {
-        name: 'Chase College Checking',
-        meta:
-          movedTotal > 0
-            ? '•••• 4417 · read-only · ' + cash(movedTotal) + ' moved out today'
-            : '•••• 4417 · read-only · synced 4m ago',
-        balance: cash(checkingStart),
-        live: true,
-      },
-      { name: 'Chase Savings', meta: '•••• 9032 · read-only · synced 4m ago', balance: cash(goalsSavedTotal), live: true },
-    ].map((a) => ({
-      name: a.name,
-      meta: a.meta,
-      balance: a.balance,
-      dot: 'width:10px;height:10px;border-radius:99px;flex:none;background:#1c6a48',
-      btnLabel: 'Disconnect',
-      btnStyle:
-        "font-family:'IBM Plex Sans',sans-serif;font-size:14px;font-weight:600;min-height:44px;padding:0 20px;border-radius:12px;flex:none;border:1px solid #cac7bc;background:transparent;color:#4a4941;cursor:pointer",
-      act: () => {},
-    })),
+    accounts: accountRows,
+    connectedCount: accountRows.filter((a) => a.connected).length,
+    reconnectAll: () =>
+      setState((st) => ({ ...st, connections: {} })),
     canDo: [
       'Read transactions and balances',
       'Categorize spending into buckets',
@@ -1500,7 +1590,7 @@ export function deriveModel(
     })(),
 
     forecastLow: cash(fLow.bal),
-    forecastLowLabel: 'Aug ' + fLow.d,
+    forecastLowLabel: now.toLocaleDateString('en-US', { month: 'short' }) + ' ' + fLow.d,
     forecastNote:
       fHeadroom > 0
         ? 'You can spend about ' +

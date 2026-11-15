@@ -116,6 +116,13 @@ export interface TallyState {
    * checks that protect real resources happen in route handlers.
    */
   tier: Tier
+  /**
+   * Which linked accounts are still connected, keyed by account id. A missing
+   * key means connected, so older saves keep working without a version bump.
+   * Disconnecting stops syncing; it never deletes the transactions already
+   * recorded.
+   */
+  connections?: Record<string, boolean>
 }
 
 /** Bumped when the shape changes incompatibly, so old saves are discarded. */

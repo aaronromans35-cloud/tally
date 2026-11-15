@@ -59,11 +59,11 @@ export default function Coach({ m }: { m: TallyModel }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [open])
 
-  async function send(text: string) {
+  async function send(text: string, base: Msg[] = msgs) {
     const content = text.trim()
     if (!content || busy) return
     setError('')
-    const next: Msg[] = [...msgs, { role: 'user', content }]
+    const next: Msg[] = [...base, { role: 'user', content }]
     setMsgs(next)
     setInput('')
     setBusy(true)
@@ -73,9 +73,20 @@ export default function Coach({ m }: { m: TallyModel }) {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ messages: next, context: m.coachContext }),
       })
-      const data = await res.json()
+      // A gateway timeout comes back as HTML, not JSON — don't let that
+      // masquerade as "no connection".
+      const data = await res.json().catch(() => null)
       if (!res.ok) {
-        setError(data?.error ?? 'The coach could not answer just now.')
+        setError(
+          data?.error ??
+            (res.status >= 500
+              ? 'The coach took too long to answer. Try again.'
+              : 'The coach could not answer just now.'),
+        )
+        return
+      }
+      if (typeof data?.reply !== 'string') {
+        setError('The coach could not answer just now.')
         return
       }
       setMsgs([...next, { role: 'assistant', content: data.reply }])
@@ -83,7 +94,16 @@ export default function Coach({ m }: { m: TallyModel }) {
       setError('Could not reach the coach. Check your connection.')
     } finally {
       setBusy(false)
+      window.setTimeout(() => inputRef.current?.focus(), 30)
     }
+  }
+
+  /** Resend the last question after a failure, without retyping it. */
+  const retry = () => {
+    const last = msgs[msgs.length - 1]
+    if (!last || last.role !== 'user') return
+    // Resend from the history before the unanswered question.
+    send(last.content, msgs.slice(0, -1))
   }
 
   if (!open) {
@@ -129,12 +149,26 @@ export default function Coach({ m }: { m: TallyModel }) {
           <span style={mono(`font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:${MUTED}`)}>
             {m.planName}
           </span>
+          {msgs.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                setMsgs([])
+                setError('')
+              }}
+              style={c(
+                `margin-left:auto;font-family:'IBM Plex Sans',sans-serif;font-size:12px;font-weight:600;color:${MUTED};background:none;border:none;cursor:pointer;padding:6px 8px`,
+              )}
+            >
+              New chat
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setOpen(false)}
             aria-label="Close coach"
             style={c(
-              `margin-left:auto;width:32px;height:32px;border-radius:9px;border:1px solid ${LINE};background:transparent;color:${MUTED};cursor:pointer;font-size:16px;line-height:1`,
+              `margin-left:${msgs.length > 0 ? '0' : 'auto'};width:32px;height:32px;border-radius:9px;border:1px solid ${LINE};background:transparent;color:${MUTED};cursor:pointer;font-size:16px;line-height:1`,
             )}
           >
             ×
@@ -197,6 +231,15 @@ export default function Coach({ m }: { m: TallyModel }) {
               style={c('font-size:13px;line-height:1.5;color:#b8422a;background:#fbeae6;border:1px solid #e7c3ba;border-radius:10px;padding:10px 12px;margin-top:14px')}
             >
               {error}
+              {msgs.length > 0 && msgs[msgs.length - 1].role === 'user' && !busy && (
+                <button
+                  type="button"
+                  onClick={retry}
+                  style={c("display:block;margin-top:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:600;color:#14140f;background:none;border:none;padding:0;cursor:pointer;text-decoration:underline")}
+                >
+                  Try again
+                </button>
+              )}
             </div>
           )}
         </div>

@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 import { clientIp, coachLimit, limitHeaders, rateLimit } from '@/lib/tally/limiter'
 import { entitlementsFor, type Tier } from '@/lib/tally/tiers'
 
@@ -20,6 +21,12 @@ const MODEL = 'claude-haiku-4-5-20251001'
 
 /** Demo visitors get a real taste without being an open relay to a paid API. */
 const DEMO_DAILY_CAP = 6
+/**
+ * Signed-in people are counted per account (not per IP, which a school network
+ * shares between hundreds of students). Haiku keeps this to a fraction of a
+ * cent per answer.
+ */
+const MEMBER_DAILY_CAP = 40
 
 const MAX_MESSAGE_CHARS = 1200
 const MAX_HISTORY = 10
@@ -121,8 +128,21 @@ export async function POST(req: Request) {
 
   const ip = clientIp(req)
 
+  // Who is asking? The session cookie is the only thing we believe — the tier
+  // in the request body is a claim, not proof.
+  let userId: string | null = null
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase.auth.getUser()
+    userId = data.user?.id ?? null
+  } catch {
+    userId = null
+  }
+  const caller = userId ? `u:${userId}` : ip
+  const dailyCap = userId ? MEMBER_DAILY_CAP : DEMO_DAILY_CAP
+
   // 1. Burst limit, per caller, fails closed.
-  const burst = await coachLimit(ip)
+  const burst = await coachLimit(caller)
   if (!burst.success) {
     return NextResponse.json(
       { error: 'You are sending messages very quickly. Give it a moment.' },
@@ -136,18 +156,20 @@ export async function POST(req: Request) {
   const claimedTier = (body.context?.tier ?? 'free') as Tier
   const ent = entitlementsFor(claimedTier)
   const daily = await rateLimit({
-    key: `tally:coach:day:${ip}`,
-    limit: DEMO_DAILY_CAP,
+    key: `tally:coach:day:${caller}`,
+    limit: dailyCap,
     windowMs: 24 * 60 * 60_000,
     onError: 'closed',
   })
   if (!daily.success) {
     return NextResponse.json(
       {
-        error: `That's ${DEMO_DAILY_CAP} coach messages today — the demo's daily limit. Create an account to get your plan's full allowance.`,
-        upgrade: true,
+        error: userId
+          ? `You've used today's ${dailyCap} coach messages. They reset tomorrow.`
+          : `That's ${dailyCap} coach messages today — the demo's daily limit. Create a free account to keep going.`,
+        upgrade: !userId,
       },
-      { status: 429, headers: limitHeaders(daily, DEMO_DAILY_CAP) },
+      { status: 429, headers: limitHeaders(daily, dailyCap) },
     )
   }
 
@@ -189,7 +211,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(
       { reply: text || 'I could not come up with an answer to that one.' },
-      { headers: limitHeaders(daily, DEMO_DAILY_CAP) },
+      { headers: limitHeaders(daily, dailyCap) },
     )
   } catch (err) {
     // Never leak provider errors (they can contain key hints and quota detail).
@@ -202,6 +224,7 @@ export async function POST(req: Request) {
       )
     }
     console.error('[tally/coach] upstream failure', status || err)
+    // 401/403 mean OUR key is bad, which the user can do nothing about.
     return NextResponse.json({ error: 'The coach could not answer just now.' }, { status: 502 })
   }
 }

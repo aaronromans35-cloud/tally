@@ -8,7 +8,7 @@
  * isn't enabled for the project. There is always a "skip into the demo" exit so
  * the flow is never a dead end.
  */
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -53,9 +53,26 @@ const primaryBtn = sx(
   {},
 )
 
-export default function AccessForm() {
+/** Same-site paths only — never let `?next=` bounce someone to another host. */
+function safeNext(raw: string | undefined): string {
+  if (!raw || !raw.startsWith('/') || raw.startsWith('//') || raw.startsWith('/\\')) return APP
+  return raw
+}
+
+export default function AccessForm({
+  initialMode = 'signup',
+  next,
+  notice,
+}: {
+  initialMode?: Mode
+  next?: string
+  /** Shown above the form, e.g. after being signed out. */
+  notice?: string
+}) {
   const router = useRouter()
-  const [mode, setMode] = useState<Mode>('signup')
+  const dest = safeNext(next)
+  const [mode, setMode] = useState<Mode>(initialMode)
+  const [showPw, setShowPw] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [dob, setDob] = useState('')
@@ -64,6 +81,7 @@ export default function AccessForm() {
   const [sent, setSent] = useState<null | 'confirm' | 'reset'>(null)
   /** True when the new account belongs to someone under 18. */
   const [guardianNote, setGuardianNote] = useState(false)
+  const navigating = useRef(false)
 
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
 
@@ -75,10 +93,12 @@ export default function AccessForm() {
   const switchMode = (m: Mode) => {
     setMode(m)
     setPassword('')
+    setShowPw(false)
     reset()
   }
 
   const google = useCallback(async () => {
+    if (busy) return
     reset()
     const client = supa()
     if (!client) {
@@ -88,16 +108,14 @@ export default function AccessForm() {
     setBusy(true)
     const { error: err } = await client.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${origin}/auth/callback` },
+      options: { redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(dest)}` },
     })
     if (err) {
       setBusy(false)
-      setError(
-        'Google sign-in isn’t enabled for this project yet. Use email below, or continue to the demo.',
-      )
+      setError('We couldn’t start Google sign-in. Try again, or use your email below.')
     }
     // on success the browser redirects to Google; no further code runs
-  }, [origin])
+  }, [origin, dest, busy])
 
   const submit = useCallback(
     async (e: React.FormEvent) => {
@@ -137,7 +155,10 @@ export default function AccessForm() {
         }
 
         if (mode === 'signin') {
-          router.push(APP)
+          // Keep the button busy through the navigation so it can't be double-sent.
+          navigating.current = true
+          router.replace(dest)
+          router.refresh()
           return
         }
         if (mode === 'signup') {
@@ -149,10 +170,11 @@ export default function AccessForm() {
       } catch {
         setError('Could not reach the server. Check your connection and try again.')
       } finally {
-        setBusy(false)
+        // Sign-in success returns early above and stays busy until the page changes.
+        if (!navigating.current) setBusy(false)
       }
     },
-    [email, password, dob, mode, router],
+    [email, password, dob, mode, router, dest],
   )
 
   const heading =
@@ -171,7 +193,7 @@ export default function AccessForm() {
         { fontFamily: BODY },
       )}
     >
-      <style>{`.tally-access a{color:#1c6a48;text-decoration:none}.tally-access a:hover{color:#14140f}`}</style>
+      <style>{`.tally-access a{color:#1c6a48;text-decoration:none}.tally-access a:hover{color:#14140f}@keyframes tally-mode-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}.tally-mode{animation:tally-mode-in 200ms ease-out backwards}@media (prefers-reduced-motion:reduce){.tally-mode{animation:none}}`}</style>
       <div className="tally-access" style={c('width:100%;max-width:420px')}>
         <div style={c('margin-bottom:26px')}>
           <TallyMark />
@@ -211,11 +233,16 @@ export default function AccessForm() {
               </button>
             </div>
           ) : (
-            <>
+            <div key={mode} className="tally-mode">
               <h1 style={display('font-size:24px;font-weight:700;letter-spacing:-0.02em;margin:0 0 8px')}>
                 {heading}
               </h1>
               <p style={c('font-size:14px;line-height:1.55;color:#4a4941;margin:0 0 22px')}>{sub}</p>
+              {notice && mode === 'signin' && (
+                <div role="status" style={c('font-size:13px;line-height:1.5;color:#1c6a48;background:#eef6ea;border:1px solid #cfe3c6;border-radius:10px;padding:10px 12px;margin-bottom:16px')}>
+                  {notice}
+                </div>
+              )}
 
               {mode !== 'reset' && (
                 <>
@@ -253,6 +280,7 @@ export default function AccessForm() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@school.edu"
+                    autoFocus
                     style={field}
                   />
                 </div>
@@ -262,15 +290,29 @@ export default function AccessForm() {
                     <label style={label} htmlFor="tally-password">
                       Password
                     </label>
-                    <input
-                      id="tally-password"
-                      type="password"
-                      autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder={mode === 'signup' ? `At least ${MIN_PASSWORD} characters` : 'Your password'}
-                      style={field}
-                    />
+                    <div style={c('position:relative')}>
+                      <input
+                        id="tally-password"
+                        type={showPw ? 'text' : 'password'}
+                        autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder={mode === 'signup' ? `At least ${MIN_PASSWORD} characters` : 'Your password'}
+                        style={sx(field, { paddingRight: 64 })}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPw((v) => !v)}
+                        aria-label={showPw ? 'Hide password' : 'Show password'}
+                        aria-pressed={showPw}
+                        style={sx(
+                          c("position:absolute;right:6px;top:50%;transform:translateY(-50%);font-family:'IBM Plex Sans',sans-serif;font-size:12px;font-weight:600;color:#1c6a48;background:none;border:none;padding:8px 10px;cursor:pointer"),
+                          {},
+                        )}
+                      >
+                        {showPw ? 'Hide' : 'Show'}
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -302,7 +344,7 @@ export default function AccessForm() {
                 )}
 
                 {error && (
-                  <div style={c('font-size:13px;line-height:1.5;color:#b8422a;background:#fbeae6;border:1px solid #e7c3ba;border-radius:10px;padding:10px 12px;margin-bottom:14px')}>
+                  <div role="alert" style={c('font-size:13px;line-height:1.5;color:#b8422a;background:#fbeae6;border:1px solid #e7c3ba;border-radius:10px;padding:10px 12px;margin-bottom:14px')}>
                     {error}
                   </div>
                 )}
@@ -345,7 +387,7 @@ export default function AccessForm() {
                   </button>
                 )}
               </div>
-            </>
+            </div>
           )}
         </div>
 

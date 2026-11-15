@@ -341,6 +341,53 @@ export function saveState(state: TallyState): void {
   }
 }
 
+/* ─────────────── who this device's copy belongs to ─────────────── */
+
+const OWNER_KEY = 'tally:owner:v1'
+
+/** The account id whose budget is in localStorage, or null for the demo. */
+export function loadOwner(): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    return window.localStorage.getItem(OWNER_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function saveOwner(userId: string): void {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(OWNER_KEY, userId)
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Epoch ms of the last local save, or 0. Used to decide local vs cloud copy. */
+export function loadSavedAt(): number {
+  if (typeof window === 'undefined') return 0
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY)
+    if (!raw) return 0
+    const at = Date.parse((JSON.parse(raw) as PersistedTallyState).savedAt)
+    return Number.isFinite(at) ? at : 0
+  } catch {
+    return 0
+  }
+}
+
+/** Sign-out on a shared computer: nothing of this budget may stay behind. */
+export function clearLocalData(): void {
+  clearState()
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.removeItem(OWNER_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
 export function clearState(): void {
   if (typeof window === 'undefined') return
   try {

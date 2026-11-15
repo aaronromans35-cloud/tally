@@ -11,7 +11,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { BODY, DISPLAY, MONO, css as c, sx } from './lib'
 import type { TallyModel } from './model'
-import { AddTransaction, HiddenHistory, ImportCsv, PlanSwitcher, UpgradeNote } from './components'
+import { AccountsPanel, AddTransaction, HiddenHistory, ImportCsv, PlanSwitcher, UpgradeNote } from './components'
+import { syncLabel, useSession } from './session-context'
 
 const mono = (x: string) => sx(c(x), { fontFamily: MONO })
 const display = (x: string) => sx(c(x), { fontFamily: DISPLAY })
@@ -27,13 +28,19 @@ export default function MobileShell({ m }: { m: TallyModel }) {
   return (
     <div style={sx(c('background:#f0eee6;color:#14140f;min-height:100vh'), { fontFamily: BODY, paddingBottom: 82 })}>
       <MHeader />
-      <main style={c('padding:14px 14px 28px;display:flex;flex-direction:column;gap:12px')}>
-        {m.isToday && <MToday m={m} />}
-        {m.isSpending && <MSpending m={m} />}
-        {m.isGoals && <MGoals m={m} />}
-        {m.isSubs && <MSubs m={m} />}
-        {m.isRecap && <MRecap m={m} />}
-        {m.isAccounts && <MAccounts m={m} />}
+      <main style={c('padding:14px 14px 28px')}>
+        <div
+          key={m.tabs.find((t) => t.active)?.label}
+          className="tally-page"
+          style={c('display:flex;flex-direction:column;gap:12px')}
+        >
+          {m.isToday && <MToday m={m} />}
+          {m.isSpending && <MSpending m={m} />}
+          {m.isGoals && <MGoals m={m} />}
+          {m.isSubs && <MSubs m={m} />}
+          {m.isRecap && <MRecap m={m} />}
+          {m.isAccounts && <MAccounts m={m} />}
+        </div>
       </main>
       <MTabBar m={m} />
     </div>
@@ -53,6 +60,8 @@ function Mark() {
 }
 
 function MHeader() {
+  const { user, sync } = useSession()
+  const status = syncLabel(sync)
   return (
     <header
       style={c(
@@ -62,19 +71,31 @@ function MHeader() {
       <Mark />
       <span style={display('font-weight:700;font-size:17px;letter-spacing:-0.02em')}>Tally</span>
       <div style={c('display:flex;align-items:center;gap:6px;margin-left:auto')}>
-        <div style={c('width:6px;height:6px;border-radius:99px;background:#1c6a48')} />
-        <span style={mono('font-size:10px;color:#4a4941')}>Synced 4m ago</span>
+        <div style={c('width:6px;height:6px;border-radius:99px;transition:background 200ms ease;background:' + status.dot)} />
+        <span role="status" aria-live="polite" style={mono('font-size:10px;color:#4a4941')}>{status.text}</span>
       </div>
-      <Link
-        href="/tally/account"
-        aria-label="Account"
-        style={sx(
-          c('width:30px;height:30px;border-radius:99px;background:#cdf06a;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#14140f;flex:none'),
-          { fontFamily: DISPLAY },
-        )}
-      >
-        JR
-      </Link>
+      {user ? (
+        <Link
+          href="/tally/account"
+          aria-label={`Account: ${user.name}`}
+          style={sx(
+            c('width:30px;height:30px;border-radius:99px;background:#cdf06a;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#14140f;flex:none'),
+            { fontFamily: DISPLAY },
+          )}
+        >
+          {user.initials}
+        </Link>
+      ) : (
+        <Link
+          href="/tally/access?mode=signin"
+          style={sx(
+            c('font-size:13px;font-weight:600;padding:7px 13px;border-radius:999px;background:#14140f;color:#f5f4ef;flex:none'),
+            { fontFamily: BODY },
+          )}
+        >
+          Sign in
+        </Link>
+      )}
     </header>
   )
 }
@@ -146,10 +167,12 @@ function MTabBar({ m }: { m: TallyModel }) {
 /* ─────────────────────────── Today ─────────────────────────── */
 
 function MToday({ m }: { m: TallyModel }) {
+  const { user } = useSession()
+  const first = user ? user.name.split(' ')[0] : ''
   return (
     <>
       <div>
-        <h1 style={display('font-size:23px;font-weight:700;letter-spacing:-0.03em;margin:0 0 3px')}>Hey Jordan</h1>
+        <h1 style={display('font-size:23px;font-weight:700;letter-spacing:-0.03em;margin:0 0 3px')}>{first ? `Hey ${first}` : 'Hey there'}</h1>
         <p style={c('font-size:13px;color:#4a4941;margin:0 0 2px')}>{m.dashSub}</p>
         <div style={mono('font-size:11px;color:#6b6a60')}>{m.todayLabel}</div>
       </div>
@@ -739,34 +762,9 @@ function MAccounts({ m }: { m: TallyModel }) {
     <>
       <div>
         <h1 style={display('font-size:22px;font-weight:700;letter-spacing:-0.03em;margin:0 0 3px')}>Connected accounts</h1>
-        <p style={c('font-size:13px;color:#4a4941;margin:0')}>Read-only through Plaid. Tally can see these — it cannot move anything.</p>
+        <p style={c('font-size:13px;color:#4a4941;margin:0')}>Read-only. Tally can see these — it cannot move anything.</p>
       </div>
-      {m.accounts.map((a, i) => (
-        <div key={i} style={sx(c(CARD), { display: 'block' })}>
-          <div style={c('display:flex;align-items:center;gap:12px;margin-bottom:12px')}>
-            <div style={c(a.dot)} />
-            <div style={c('flex:1')}>
-              <div style={c('font-size:16px;font-weight:600')}>{a.name}</div>
-              <div style={mono('font-size:11px;color:#4a4941')}>{a.meta}</div>
-            </div>
-          </div>
-          <div style={c('display:flex;justify-content:space-between;align-items:center;gap:10px')}>
-            <span style={display('font-size:22px;font-weight:700;letter-spacing:-0.02em')}>{a.balance}</span>
-            <button type="button" onClick={a.act} style={c(a.btnStyle)}>{a.btnLabel}</button>
-          </div>
-        </div>
-      ))}
-
-      <div style={c('background:#ffffff;border:1px dashed #cac7bc;border-radius:20px;padding:22px;text-align:center')}>
-        <div style={c('font-size:15px;font-weight:600;margin-bottom:4px')}>Add another account</div>
-        <div style={c('font-size:12px;color:#4a4941;margin-bottom:14px')}>Checking, savings, or a card.</div>
-        <button
-          type="button"
-          style={sx(c('font-size:14px;font-weight:600;width:100%;min-height:46px;border:none;border-radius:12px;background:#1c6a48;color:#f7fbf6;cursor:pointer'), { fontFamily: BODY })}
-        >
-          Connect with Plaid
-        </button>
-      </div>
+      <AccountsPanel m={m} compact />
 
       <div style={c(DARK)}>
         <div style={sx(c(KICKER), { color: '#a8a69b' })}>What Tally can and cannot do</div>
@@ -781,7 +779,7 @@ function MAccounts({ m }: { m: TallyModel }) {
       </div>
 
       <Link href="/tally/account" style={sx(c('text-align:center;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:#6b6a60'), { fontFamily: MONO })}>
-        Account Sign in / manage accountamp; settings
+        Account &amp; settings
       </Link>
     </>
   )

@@ -5,15 +5,36 @@
  * Port of "Tally App v5.dc.html". The design's template markup becomes JSX here;
  * every inline style string is passed through `css()` so this file stays close
  * to the source. All display values come from `deriveModel()` — see model.ts.
+ *
+ * Data lives in localStorage (so the demo works with no account). When someone
+ * is signed in, every change is also mirrored to their account via
+ * `/api/tally/state`, so the budget follows them across devices.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { BODY, DISPLAY, MONO, css as c, Hover, sx } from './lib'
 import { deriveModel, initialState, type Page, type TallyModel, type TallyState } from './model'
-import { loadState, saveState } from './storage'
-import { AddTransaction, HiddenHistory, ImportCsv, PlanSwitcher, UpgradeNote } from './components'
+import {
+  clearLocalData,
+  loadOwner,
+  loadSavedAt,
+  loadState,
+  saveOwner,
+  saveState,
+} from './storage'
+import {
+  AccountsPanel,
+  AddTransaction,
+  HiddenHistory,
+  ImportCsv,
+  PlanSwitcher,
+  UpgradeNote,
+} from './components'
 import Coach from './Coach'
 import MobileShell from './TallyMobile'
+import { SessionContext, syncLabel, useSession, type SyncStatus } from './session-context'
+import type { TallyUser } from '@/lib/tally/user'
 
 /** Swap to the phone layout under 768px. SSR renders desktop, then hydrates. */
 function useIsMobile() {
@@ -28,7 +49,25 @@ function useIsMobile() {
   return mobile
 }
 
-export default function TallyApp() {
+/** Looks enough like a saved budget to trust it over local data. */
+function usable(x: unknown): x is TallyState {
+  if (!x || typeof x !== 'object') return false
+  const s = x as Partial<TallyState>
+  return (
+    Array.isArray(s.buckets) &&
+    Array.isArray(s.txns) &&
+    Array.isArray(s.goals) &&
+    Array.isArray(s.subs) &&
+    Array.isArray(s.reviewedOn) &&
+    typeof s.checkingCents === 'number'
+  )
+}
+
+const SAVE_DELAY_MS = 1200
+const RETRY_MS = 8000
+
+export default function TallyApp({ user = null }: { user?: TallyUser | null }) {
+  const router = useRouter()
   const [state, setState] = useState<TallyState>(initialState)
   const isMobile = useIsMobile()
   /**
@@ -38,14 +77,135 @@ export default function TallyApp() {
    * signed-in app, so there is no SEO cost to waiting a frame.
    */
   const [hydrated, setHydrated] = useState(false)
+  const [sync, setSync] = useState<SyncStatus>(user ? 'saving' : 'demo')
 
+  /** True once we know what the server holds, so we never overwrite it blind. */
+  const cloudReady = useRef(false)
+  const cloudOff = useRef(false)
+  const lastSent = useRef('')
+  const saveTimer = useRef<number | undefined>(undefined)
+  const retryTimer = useRef<number | undefined>(undefined)
+  const latest = useRef(state)
+  latest.current = state
+
+  /* ── Upload ── */
+  const upload = useCallback(
+    async (snapshot: TallyState, keepalive = false) => {
+      // `page` is where you are, not part of your budget — don't sync it.
+      const body = JSON.stringify({ state: { ...snapshot, page: 'today' } })
+      if (body === lastSent.current) {
+        setSync('saved')
+        return
+      }
+      try {
+        const res = await fetch('/api/tally/state', {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body,
+          keepalive,
+        })
+        if (res.status === 401) {
+          // Session ended in another tab. Keep working locally.
+          setSync('demo')
+          cloudOff.current = true
+          return
+        }
+        const data = await res.json().catch(() => ({}))
+        if (res.ok && data?.unavailable) {
+          cloudOff.current = true
+          setSync('local')
+          return
+        }
+        if (!res.ok) throw new Error('save failed')
+        lastSent.current = body
+        setSync('saved')
+      } catch {
+        setSync('offline')
+        window.clearTimeout(retryTimer.current)
+        retryTimer.current = window.setTimeout(() => {
+          if (cloudReady.current && !cloudOff.current) upload(latest.current)
+        }, RETRY_MS)
+      }
+    },
+    [],
+  )
+
+  /* ── First load: decide between the local copy and the account's copy ── */
   useEffect(() => {
-    setState(loadState())
-    setHydrated(true)
-  }, [])
+    const local = loadState()
+    if (!user) {
+      setState(local)
+      setHydrated(true)
+      return
+    }
 
-  // Persist on every change, but never write the seed over a real save before
-  // the load has happened.
+    let cancelled = false
+    const localIsMine = loadOwner() === user.id
+
+    const attempt = async () => {
+      try {
+        const res = await fetch('/api/tally/state', { cache: 'no-store' })
+        if (cancelled) return
+        if (res.status === 401) {
+          setState(local)
+          setSync('demo')
+          cloudOff.current = true
+          setHydrated(true)
+          return
+        }
+        const data = await res.json()
+        if (cancelled) return
+        if (!res.ok) throw new Error('load failed')
+
+        if (data.unavailable) {
+          cloudOff.current = true
+          setState(local)
+          setSync('local')
+        } else if (usable(data.state)) {
+          // The account has a copy. It wins — unless this device holds newer
+          // edits that were made as this same user while offline.
+          const serverAt = data.updatedAt ? Date.parse(data.updatedAt) : 0
+          const localAt = loadSavedAt()
+          if (localIsMine && localAt > serverAt + 5000) {
+            setState(local)
+            cloudReady.current = true
+            saveOwner(user.id)
+            await upload(local)
+          } else {
+            lastSent.current = JSON.stringify({ state: { ...data.state, page: 'today' } })
+            setState({ ...data.state, page: local.page })
+            cloudReady.current = true
+            saveOwner(user.id)
+            setSync('saved')
+          }
+        } else {
+          // First sign-in: carry over whatever they built in the demo.
+          setState(local)
+          cloudReady.current = true
+          saveOwner(user.id)
+          await upload(local)
+        }
+        setHydrated(true)
+      } catch {
+        if (cancelled) return
+        // Can't reach the server: show the local copy, keep trying, and do not
+        // upload anything until we've seen what the server has.
+        setState(local)
+        setSync('offline')
+        setHydrated(true)
+        retryTimer.current = window.setTimeout(attempt, RETRY_MS)
+      }
+    }
+    attempt()
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(retryTimer.current)
+    }
+  }, [user, upload])
+
+  // Persist locally on every change, but never write the seed over a real save
+  // before the load has happened.
   const firstSave = useRef(true)
   useEffect(() => {
     if (!hydrated) return
@@ -54,47 +214,126 @@ export default function TallyApp() {
       return
     }
     saveState(state)
-  }, [state, hydrated])
+    if (user && cloudReady.current && !cloudOff.current) {
+      saveOwner(user.id)
+      setSync('saving')
+      window.clearTimeout(saveTimer.current)
+      saveTimer.current = window.setTimeout(() => upload(state), SAVE_DELAY_MS)
+    }
+  }, [state, hydrated, user, upload])
+
+  // Don't lose the last edit if the tab is closed inside the debounce window.
+  useEffect(() => {
+    if (!user) return
+    const flush = () => {
+      if (saveTimer.current && cloudReady.current && !cloudOff.current) {
+        window.clearTimeout(saveTimer.current)
+        saveTimer.current = undefined
+        upload(latest.current, true)
+      }
+    }
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') flush()
+    }
+    document.addEventListener('visibilitychange', onHide)
+    window.addEventListener('pagehide', flush)
+    return () => {
+      document.removeEventListener('visibilitychange', onHide)
+      window.removeEventListener('pagehide', flush)
+    }
+  }, [user, upload])
 
   const go = useCallback((p: Page) => {
-    setState((st) => ({ ...st, page: p }))
-    if (typeof window !== 'undefined') window.scrollTo(0, 0)
+    setState((st) => (st.page === p ? st : { ...st, page: p }))
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'auto' })
   }, [])
 
+  const signOut = useCallback(async () => {
+    window.clearTimeout(saveTimer.current)
+    // Push the last edit up first so signing out never loses work.
+    if (user && cloudReady.current && !cloudOff.current) await upload(latest.current)
+    try {
+      await fetch('/api/tally/auth', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'signout' }),
+      })
+    } catch {
+      /* the server clears cookies even if the response is lost */
+    }
+    // Shared devices: the next person must not see this budget.
+    clearLocalData()
+    router.replace('/tally/access?mode=signin')
+    router.refresh()
+  }, [router, user, upload])
+
+  const session = useMemo(() => ({ user, sync, signOut }), [user, sync, signOut])
   const m = useMemo(() => deriveModel(state, setState, go), [state, go])
 
-  if (!hydrated) {
-    return (
-      <div
-        style={sx(c('background:#f0eee6;min-height:100vh'), { fontFamily: BODY })}
-        aria-busy="true"
-      />
-    )
-  }
-
-  if (isMobile) {
-    return (
-      <>
-        <MobileShell m={m} />
-        <Coach m={m} />
-      </>
-    )
-  }
+  if (!hydrated) return <Skeleton />
 
   return (
-    <div style={sx(c('background:#f0eee6;color:#14140f;min-height:100vh'), { fontFamily: BODY })}>
-      <div style={{ minWidth: 1180, overflowX: 'auto' }}>
-        <Header m={m} />
-        <main style={c('max-width:1240px;margin:0 auto;padding:32px 32px 88px')}>
-          {m.isToday && <Today m={m} />}
-          {m.isSpending && <Spending m={m} />}
-          {m.isGoals && <Goals m={m} />}
-          {m.isSubs && <Subscriptions m={m} />}
-          {m.isRecap && <Recap m={m} />}
-          {m.isAccounts && <Accounts m={m} />}
-        </main>
+    <SessionContext.Provider value={session}>
+      <style>{TRANSITION_CSS}</style>
+      {isMobile ? (
+        <>
+          <MobileShell m={m} />
+          <Coach m={m} />
+        </>
+      ) : (
+        <div style={sx(c('background:#f0eee6;color:#14140f;min-height:100vh'), { fontFamily: BODY })}>
+          <div style={{ minWidth: 1180, overflowX: 'auto' }}>
+            <Header m={m} />
+            <main style={c('max-width:1240px;margin:0 auto;padding:32px 32px 88px')}>
+              {/* Re-keyed per page so every tab change plays the entrance. */}
+              <div key={state.page} className="tally-page">
+                {m.isToday && <Today m={m} />}
+                {m.isSpending && <Spending m={m} />}
+                {m.isGoals && <Goals m={m} />}
+                {m.isSubs && <Subscriptions m={m} />}
+                {m.isRecap && <Recap m={m} />}
+                {m.isAccounts && <Accounts m={m} />}
+              </div>
+            </main>
+          </div>
+          <Coach m={m} />
+        </div>
+      )}
+    </SessionContext.Provider>
+  )
+}
+
+/**
+ * Entrance animation for tab changes. Opacity + a few pixels of travel, short
+ * enough to feel instant, and switched off for anyone who asks for less motion.
+ */
+const TRANSITION_CSS = `
+@keyframes tally-page-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.tally-page{animation:tally-page-in 240ms cubic-bezier(.2,.7,.2,1) backwards}
+@keyframes tally-pulse{0%,100%{opacity:.55}50%{opacity:1}}
+.tally-skel{animation:tally-pulse 1.4s ease-in-out infinite}
+.tally-tab{transition:background 160ms ease,color 160ms ease}
+.tally-tab:hover{background:rgba(20,20,15,.06)}
+.tally-tab[aria-current="page"]:hover{background:#14140f}
+@media (prefers-reduced-motion:reduce){.tally-page,.tally-skel{animation:none}.tally-tab{transition:none}}
+`
+
+/** What shows while the saved budget loads — the shape of the app, not a blank page. */
+function Skeleton() {
+  const bar = (w: string, h = 14) =>
+    c(`width:${w};height:${h}px;border-radius:99px;background:#e4e1d6`)
+  return (
+    <div style={sx(c('background:#f0eee6;min-height:100vh'), { fontFamily: BODY })} aria-busy="true" aria-label="Loading your budget">
+      <style>{TRANSITION_CSS}</style>
+      <div style={c('border-bottom:1px solid #ddd9cc;height:61px;display:flex;align-items:center;padding:0 32px;gap:24px')}>
+        <div className="tally-skel" style={c('width:26px;height:26px;border-radius:8px;background:#1c6a48')} />
+        <div className="tally-skel" style={bar('260px', 16)} />
       </div>
-      <Coach m={m} />
+      <div style={c('max-width:1240px;margin:0 auto;padding:32px;display:flex;flex-direction:column;gap:18px')}>
+        <div className="tally-skel" style={bar('220px', 28)} />
+        <div className="tally-skel" style={c('height:210px;border-radius:28px;background:#d9d6ca')} />
+        <div className="tally-skel" style={c('height:260px;border-radius:26px;background:#e4e1d6')} />
+      </div>
     </div>
   )
 }
@@ -102,6 +341,8 @@ export default function TallyApp() {
 /* ─────────────────────────── shell ─────────────────────────── */
 
 function Header({ m }: { m: TallyModel }) {
+  const { user, sync } = useSession()
+  const status = syncLabel(sync)
   return (
     <header
       style={c(
@@ -114,9 +355,16 @@ function Header({ m }: { m: TallyModel }) {
         )}
       >
         <Logo />
-        <nav style={c('display:flex;gap:2px')}>
+        <nav aria-label="Sections" style={c('display:flex;gap:2px')}>
           {m.tabs.map((t, i) => (
-            <button key={i} type="button" onClick={t.go} style={c(t.style)}>
+            <button
+              key={i}
+              type="button"
+              onClick={t.go}
+              className="tally-tab"
+              aria-current={t.active ? 'page' : undefined}
+              style={c(t.style)}
+            >
               <span>{t.label}</span>
               {t.badge ? <span style={c(t.badgeStyle)}>{t.badge}</span> : null}
             </button>
@@ -124,27 +372,46 @@ function Header({ m }: { m: TallyModel }) {
         </nav>
         <div style={c('margin-left:auto;display:flex;align-items:center;gap:14px')}>
           <div
+            role="status"
+            aria-live="polite"
             style={c(
               'display:flex;align-items:center;gap:8px;background:#ffffff;border:1px solid #e0ded4;border-radius:999px;padding:7px 14px',
             )}
           >
-            <div style={c('width:7px;height:7px;border-radius:99px;background:#1c6a48')} />
-            <span style={sx(c('font-size:11px;color:#4a4941'), { fontFamily: MONO })}>
-              Synced 4m ago
-            </span>
+            <div
+              style={c(
+                'width:7px;height:7px;border-radius:99px;transition:background 200ms ease;background:' + status.dot,
+              )}
+            />
+            <span style={sx(c('font-size:11px;color:#4a4941'), { fontFamily: MONO })}>{status.text}</span>
           </div>
-          <Link
-            href="/tally/account"
-            aria-label="Account and sign in"
-            style={sx(
-              c(
-                'width:32px;height:32px;border-radius:99px;background:#cdf06a;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#14140f',
-              ),
-              { fontFamily: DISPLAY },
-            )}
-          >
-            JR
-          </Link>
+          {user ? (
+            <Link
+              href="/tally/account"
+              aria-label={`Account: ${user.name}`}
+              title={user.email}
+              style={sx(
+                c(
+                  'width:34px;height:34px;border-radius:99px;background:#cdf06a;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#14140f',
+                ),
+                { fontFamily: DISPLAY },
+              )}
+            >
+              {user.initials}
+            </Link>
+          ) : (
+            <Link
+              href="/tally/access?mode=signin"
+              style={sx(
+                c(
+                  'font-size:14px;font-weight:600;padding:8px 16px;border-radius:999px;background:#14140f;color:#f5f4ef',
+                ),
+                { fontFamily: BODY },
+              )}
+            >
+              Sign in
+            </Link>
+          )}
         </div>
       </div>
     </header>
@@ -187,6 +454,8 @@ const linkBtn = c('font-size:14px;font-weight:600;color:#1c6a48;background:none;
 /* ─────────────────────────── Today ─────────────────────────── */
 
 function Today({ m }: { m: TallyModel }) {
+  const { user } = useSession()
+  const first = user ? user.name.split(' ')[0] : ''
   return (
     <div style={c('display:flex;flex-direction:column;gap:18px')}>
       <div
@@ -195,7 +464,7 @@ function Today({ m }: { m: TallyModel }) {
         )}
       >
         <div>
-          <h1 style={h1(32)}>Hey Jordan</h1>
+          <h1 style={h1(32)}>{first ? `Hey ${first}` : 'Hey there'}</h1>
           <p style={c('font-size:15px;color:#4a4941;margin:0')}>{m.dashSub}</p>
         </div>
         <div style={mono('font-size:12px;color:#6b6a60')}>{m.todayLabel}</div>
@@ -994,45 +1263,11 @@ function Accounts({ m }: { m: TallyModel }) {
       <div>
         <h1 style={h1(30)}>Connected accounts</h1>
         <p style={c('font-size:15px;color:#4a4941;margin:0')}>
-          Read-only through Plaid. Tally can see these — it cannot move anything.
+          Read-only. Tally can see these — it cannot move anything.
         </p>
       </div>
 
-      {m.accounts.map((a, i) => (
-        <div
-          key={i}
-          style={c('background:#ffffff;border:1px solid #e0ded4;border-radius:24px;padding:26px 30px;display:flex;align-items:center;gap:20px')}
-        >
-          <div style={c(a.dot)} />
-          <div style={c('flex:1')}>
-            <div style={c('font-size:18px;font-weight:600;margin-bottom:4px')}>{a.name}</div>
-            <div style={mono('font-size:12px;color:#4a4941')}>{a.meta}</div>
-          </div>
-          <div style={display('font-size:24px;font-weight:700;letter-spacing:-0.02em;margin-right:24px')}>
-            {a.balance}
-          </div>
-          <button type="button" onClick={a.act} style={c(a.btnStyle)}>
-            {a.btnLabel}
-          </button>
-        </div>
-      ))}
-
-      <div style={c('background:#ffffff;border:1px dashed #cac7bc;border-radius:24px;padding:30px;text-align:center')}>
-        <div style={c('font-size:17px;font-weight:600;margin-bottom:6px')}>Add another account</div>
-        <div style={c('font-size:14px;color:#4a4941;margin-bottom:18px')}>
-          Checking, savings, or a card. More accounts means better categories.
-        </div>
-        <Hover
-          as="button"
-          base={sx(
-            c('font-size:15px;font-weight:600;min-height:46px;padding:0 24px;border:none;border-radius:12px;background:#1c6a48;color:#f7fbf6;cursor:pointer'),
-            { fontFamily: BODY },
-          )}
-          hover={{ background: '#14140f' }}
-        >
-          Connect with Plaid
-        </Hover>
-      </div>
+      <AccountsPanel m={m} />
 
       <div style={c('background:#14140f;color:#f5f4ef;border-radius:24px;padding:30px')}>
         <div style={mono('font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#a8a69b;margin-bottom:18px')}>

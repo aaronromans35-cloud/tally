@@ -1,6 +1,6 @@
 # Tally — what's done, and what's yours
 
-Last updated: 2026-11-13 · Repo: https://github.com/aaronromans35-cloud/tally
+Last updated: 2026-11-14 · Repo: https://github.com/aaronromans35-cloud/tally
 
 ---
 
@@ -11,6 +11,13 @@ Supabase project `qhszfzgevmgjvbqtpzkp`, env vars on Vercel, Google sign-in
 (via `/auth/callback`), Supabase Site URL + Redirect URLs, and Upstash-backed
 rate limiting. The project deploys with `npx vercel --prod --yes`; it is not
 connected to GitHub, so pushing does not deploy.
+
+Also live (2026-11-14): cloud sync of each signed-in user's budget
+(`tally_user_state` table, migration `supabase/migrations/tally_user_state.sql`,
+applied), server-side sign-out, a real account page, working Disconnect, and
+the AI coach (fixed: the Vercel `ANTHROPIC_API_KEY` was invalid). Still open:
+real Plaid bank linking, and full account deletion (needs a Supabase service
+role key in Vercel — today the account page points to privacy@tally.app).
 
 ## Part 1 — Your steps, in order
 
